@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
-  const handleRoleChange = async (userId: string, role: 'admin' | 'customer') => {
+  const handleRoleChange = async (userId: string, role: 'admin' | 'user') => {
     try {
       await updateRole.mutateAsync({ userId, role });
       toast.success(`Role updated to ${role}`);
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     try {
       await createUser.mutateAsync({ email: newEmail, password: newPassword, role: newRole });
       toast.success('User created successfully!');
-      setNewEmail(''); setNewPassword(''); setNewRole('customer'); setAddDialogOpen(false);
+      setNewEmail(''); setNewPassword(''); setNewRole('user'); setAddDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
                     minLength={6}
                     required
                   />
-                  <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'customer')}>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'user')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
