@@ -18,7 +18,7 @@ export default function Login() {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        toast.success('Account created! Check your email to confirm.');
+        toast.success('Account created! You are signed in.');
       } else {
         await signIn(email, password);
         toast.success('Welcome back!');
