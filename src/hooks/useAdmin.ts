@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export interface UserWithRole {
   user_id: string;
-  role: 'admin' | 'customer';
+  role: 'admin' | 'user';
   created_at: string;
   id: string;
   email?: string;
@@ -66,7 +66,7 @@ export function useAllTransactionsAdmin() {
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'customer' }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'user' }) => {
       const { error } = await supabase
         .from('user_roles')
         .update({ role })
@@ -83,7 +83,7 @@ export function useUpdateRole() {
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ email, password, role }: { email: string; password: string; role: 'admin' | 'customer' }) => {
+    mutationFn: async ({ email, password, role }: { email: string; password: string; role: 'admin' | 'user' }) => {
       const { data, error } = await supabase.functions.invoke('admin-users', {
         body: { action: 'create', email, password, role },
       });

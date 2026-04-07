@@ -28,9 +28,9 @@ export default function AdminDashboard() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'customer'>('customer');
+  const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
-  const handleRoleChange = async (userId: string, role: 'admin' | 'customer') => {
+  const handleRoleChange = async (userId: string, role: 'admin' | 'user') => {
     try {
       await updateRole.mutateAsync({ userId, role });
       toast.success(`Role updated to ${role}`);
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     try {
       await createUser.mutateAsync({ email: newEmail, password: newPassword, role: newRole });
       toast.success('User created successfully!');
-      setNewEmail(''); setNewPassword(''); setNewRole('customer'); setAddDialogOpen(false);
+      setNewEmail(''); setNewPassword(''); setNewRole('user'); setAddDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -141,13 +141,13 @@ export default function AdminDashboard() {
                     minLength={6}
                     required
                   />
-                  <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'customer')}>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'user')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button type="submit" className="w-full gradient-primary border-0" disabled={createUser.isPending}>
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
                 </div>
                 <Select
                   value={ur.role}
-                  onValueChange={(val) => handleRoleChange(ur.user_id, val as 'admin' | 'customer')}
+                  onValueChange={(val) => handleRoleChange(ur.user_id, val as 'admin' | 'user')}
                 >
                   <SelectTrigger className="w-28">
                     <SelectValue />

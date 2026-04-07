@@ -14,7 +14,7 @@ export function useRole() {
         .eq('user_id', user!.id)
         .single();
       if (error) throw error;
-      return data.role as 'admin' | 'customer';
+      return data.role as 'admin' | 'user';
     },
   });
 }

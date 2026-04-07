@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       });
       if (createError) throw createError;
 
-      // Update role if not default customer
+      // Update role if not default user
       if (role === "admin" && newUser.user) {
         await adminClient.from("user_roles").update({ role: "admin" }).eq("user_id", newUser.user.id);
       }
