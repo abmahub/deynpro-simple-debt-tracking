@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'customer'>('customer');
+  const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
   const handleRoleChange = async (userId: string, role: 'admin' | 'customer') => {
     try {
@@ -146,8 +146,8 @@ export default function AdminDashboard() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button type="submit" className="w-full gradient-primary border-0" disabled={createUser.isPending}>
