@@ -168,7 +168,7 @@ export default function AdminDashboard() {
                 </div>
                 <Select
                   value={ur.role}
-                  onValueChange={(val) => handleRoleChange(ur.user_id, val as 'admin' | 'customer')}
+                  onValueChange={(val) => handleRoleChange(ur.user_id, val as 'admin' | 'user')}
                 >
                   <SelectTrigger className="w-28">
                     <SelectValue />
