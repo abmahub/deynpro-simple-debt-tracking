@@ -6,18 +6,31 @@ export interface UserWithRole {
   role: 'admin' | 'customer';
   created_at: string;
   id: string;
+  email?: string;
 }
 
 export function useAllUserRoles() {
   return useQuery({
     queryKey: ['admin-user-roles'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get roles
+      const { data: roles, error } = await supabase
         .from('user_roles')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as UserWithRole[];
+
+      // Get user emails from edge function
+      const { data: session } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('admin-users', {
+        body: { action: 'list' },
+      });
+      
+      const users = res.data?.users || [];
+      const emailMap: Record<string, string> = {};
+      users.forEach((u: any) => { emailMap[u.id] = u.email; });
+
+      return (roles || []).map(r => ({ ...r, email: emailMap[r.user_id] || 'Unknown' })) as UserWithRole[];
     },
   });
 }
@@ -60,7 +73,46 @@ export function useUpdateRole() {
         .eq('user_id', userId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user-roles'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      qc.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+  });
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ email, password, role }: { email: string; password: string; role: 'admin' | 'customer' }) => {
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'create', email, password, role },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      qc.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'delete', userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      qc.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
   });
 }
 

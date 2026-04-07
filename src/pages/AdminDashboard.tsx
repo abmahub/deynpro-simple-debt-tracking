@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Users, ArrowLeftRight, TrendingDown, TrendingUp, Crown, UserCheck } from 'lucide-react';
-import { useAdminStats, useAllUserRoles, useUpdateRole, useAllCustomersAdmin, useAllTransactionsAdmin } from '@/hooks/useAdmin';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Shield, Users, ArrowLeftRight, TrendingDown, TrendingUp, Crown, UserCheck, Plus, Trash2 } from 'lucide-react';
+import { useAdminStats, useAllUserRoles, useUpdateRole, useCreateUser, useDeleteUser, useAllCustomersAdmin, useAllTransactionsAdmin } from '@/hooks/useAdmin';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -19,11 +22,38 @@ export default function AdminDashboard() {
   const { data: customers, isLoading: custsLoading } = useAllCustomersAdmin();
   const { data: transactions, isLoading: txLoading } = useAllTransactionsAdmin();
   const updateRole = useUpdateRole();
+  const createUser = useCreateUser();
+  const deleteUser = useDeleteUser();
+
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<'admin' | 'customer'>('customer');
 
   const handleRoleChange = async (userId: string, role: 'admin' | 'customer') => {
     try {
       await updateRole.mutateAsync({ userId, role });
       toast.success(`Role updated to ${role}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createUser.mutateAsync({ email: newEmail, password: newPassword, role: newRole });
+      toast.success('User created successfully!');
+      setNewEmail(''); setNewPassword(''); setNewRole('customer'); setAddDialogOpen(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await deleteUser.mutateAsync(userId);
+      toast.success('User deleted');
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -83,20 +113,64 @@ export default function AdminDashboard() {
         </TabsList>
 
         {/* Users Tab */}
-        <TabsContent value="users" className="space-y-2 mt-4">
+        <TabsContent value="users" className="space-y-3 mt-4">
+          <div className="flex justify-end">
+            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gradient-primary border-0 gap-1">
+                  <Plus size={16} /> Add User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New User</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddUser} className="space-y-4">
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    required
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Password (min 6 chars)"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    minLength={6}
+                    required
+                  />
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as 'admin' | 'customer')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="customer">Customer</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button type="submit" className="w-full gradient-primary border-0" disabled={createUser.isPending}>
+                    {createUser.isPending ? 'Creating...' : 'Create User'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {rolesLoading && <div className="h-20 bg-muted rounded-xl animate-pulse" />}
           {userRoles?.map(ur => (
             <Card key={ur.id} className="shadow-card">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
+              <CardContent className="p-4 flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-mono text-card-foreground truncate">{ur.user_id}</p>
+                  <p className="text-sm font-medium text-card-foreground truncate">{ur.email || 'Unknown'}</p>
                   <p className="text-xs text-muted-foreground">{format(new Date(ur.created_at), 'MMM d, yyyy')}</p>
                 </div>
                 <Select
                   value={ur.role}
                   onValueChange={(val) => handleRoleChange(ur.user_id, val as 'admin' | 'customer')}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-28">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -104,6 +178,30 @@ export default function AdminDashboard() {
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive shrink-0">
+                      <Trash2 size={16} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete User?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete <strong>{ur.email}</strong> and all their data. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => handleDeleteUser(ur.user_id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           ))}
