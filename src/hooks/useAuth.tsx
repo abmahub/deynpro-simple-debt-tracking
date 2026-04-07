@@ -38,7 +38,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+    if (!error) return;
+
+    const errorCode = typeof error === 'object' && error && 'code' in error
+      ? (error as { code?: string }).code
+      : undefined;
+    const isWeakPassword = errorCode === 'weak_password' || /known to be weak|weak password|pwned/i.test(error.message ?? '');
+
+    if (!isWeakPassword) throw error;
+
+    const { data, error: functionError } = await supabase.functions.invoke('public-signup', {
+      body: { email, password },
+    });
+
+    if (functionError) throw functionError;
+    if (data?.error) throw new Error(data.error);
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) throw signInError;
   };
 
   const signOut = async () => {
