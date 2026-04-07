@@ -1,19 +1,25 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsAdmin } from '@/hooks/useRole';
 import { Button } from '@/components/ui/button';
 
-const navItems = [
+const baseNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions' },
 ];
 
+const adminNavItem = { to: '/admin', icon: Shield, label: 'Admin' };
+
 export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,6 +85,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="p-3">
+            {isAdmin && (
+              <div className="mb-2 px-3 py-1.5">
+                <span className="text-xs font-semibold text-warning flex items-center gap-1">
+                  <Shield size={12} /> Admin
+                </span>
+              </div>
+            )}
             <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" onClick={signOut}>
               <LogOut size={18} className="mr-2" /> Sign Out
             </Button>
