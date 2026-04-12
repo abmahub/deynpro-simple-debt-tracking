@@ -11,6 +11,10 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import Customers from "@/pages/Customers";
 import CustomerDetails from "@/pages/CustomerDetails";
 import Transactions from "@/pages/Transactions";
+import Products from "@/pages/Products";
+import Suppliers from "@/pages/Suppliers";
+import Sales from "@/pages/Sales";
+import Expenses from "@/pages/Expenses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +47,10 @@ const App = () => (
             <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
             <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetails /></ProtectedRoute>} />
             <Route path="/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+            <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
