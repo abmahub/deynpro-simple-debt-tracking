@@ -71,6 +71,21 @@ export function useCreateSale() {
       const { error: itemsError } = await supabase.from('sale_items').insert(saleItems);
       if (itemsError) throw itemsError;
 
+      // If sold on credit, create a debt transaction for the customer
+      if (payment_method === 'credit' && customer_id) {
+        const itemNames = items.map(i => {
+          // We'll use product_id as fallback
+          return `sale item`;
+        });
+        const { error: txError } = await supabase.from('transactions').insert({
+          customer_id,
+          type: 'debt',
+          amount: total_amount,
+          description: `Credit sale #${sale.id.slice(0, 8)}`,
+        });
+        if (txError) throw txError;
+      }
+
       return sale;
     },
     onSuccess: () => {
