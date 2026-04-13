@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Shield, Package, Truck, ShoppingCart, Receipt, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Shield, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useRole';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
@@ -14,6 +14,7 @@ const baseNavItems = [
   { to: '/transactions', icon: ArrowLeftRight, label: 'Debts' },
   { to: '/suppliers', icon: Truck, label: 'Suppliers' },
   { to: '/expenses', icon: Receipt, label: 'Expenses' },
+  { to: '/reports', icon: BarChart3, label: 'Reports' },
 ];
 
 const adminNavItem = { to: '/admin', icon: Shield, label: 'Admin' };
