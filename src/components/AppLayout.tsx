@@ -1,12 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Shield, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useRole';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { Button } from '@/components/ui/button';
 
-const baseNavItems = [
+const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/sales', icon: ShoppingCart, label: 'Sales' },
@@ -17,16 +16,12 @@ const baseNavItems = [
   { to: '/reports', icon: BarChart3, label: 'Reports' },
 ];
 
-const adminNavItem = { to: '/admin', icon: Shield, label: 'Admin' };
-
 export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
   const { data: alerts } = useStockAlerts();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
   const unreadAlerts = alerts?.length || 0;
 
   return (
@@ -109,13 +104,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {unreadAlerts} alert{unreadAlerts > 1 ? 's' : ''}
               </Link>
             )}
-            {isAdmin && (
-              <div className="mb-2 px-3 py-1.5">
-                <span className="text-xs font-semibold text-warning flex items-center gap-1">
-                  <Shield size={12} /> Admin
-                </span>
-              </div>
-            )}
             <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" onClick={signOut}>
               <LogOut size={18} className="mr-2" /> Sign Out
             </Button>
@@ -132,7 +120,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom nav - show top 5 items */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex md:hidden">
-        {baseNavItems.slice(0, 5).map(item => (
+        {navItems.slice(0, 5).map(item => (
           <Link
             key={item.to}
             to={item.to}
