@@ -94,6 +94,9 @@ export function useCreateSale() {
       qc.invalidateQueries({ queryKey: ['products-low-stock'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       qc.invalidateQueries({ queryKey: ['stock-alerts'] });
+      qc.invalidateQueries({ queryKey: ['customer-transactions'] });
+      qc.invalidateQueries({ queryKey: ['customer'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 }
