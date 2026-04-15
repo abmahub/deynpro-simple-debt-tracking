@@ -5,13 +5,26 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useStockAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '@/hooks/useStockAlerts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart, Receipt, Bell, X, CheckCheck } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart, Receipt, Bell, X, CheckCheck, MessageCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { format } from 'date-fns';
+import { format, isPast, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useAllTransactions } from '@/hooks/useCustomers';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
+}
+
+function formatPhone(phone: string) {
+  let clean = phone.replace(/\s+/g, '');
+  if (clean.startsWith('0')) clean = '254' + clean.slice(1);
+  if (!clean.startsWith('+')) clean = '+' + clean;
+  return clean.replace('+', '');
+}
+
+function openWhatsApp(phone: string, message: string) {
+  const num = formatPhone(phone);
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 export default function Dashboard() {
@@ -22,6 +35,12 @@ export default function Dashboard() {
   const { data: alerts } = useStockAlerts();
   const markRead = useMarkAlertRead();
   const markAllRead = useMarkAllAlertsRead();
+  const { data: allTransactions } = useAllTransactions();
+
+  // Find overdue debts with customer info
+  const overdueDebts = (allTransactions || []).filter(
+    (tx: any) => tx.type === 'debt' && tx.due_date && isPast(parseISO(tx.due_date))
+  );
 
   // Calculate sales stats
   const totalSalesRevenue = (sales || []).reduce((s, sale: any) => s + sale.total_amount, 0);
@@ -136,8 +155,45 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Low Stock Products */}
+      {/* Overdue Debts with WhatsApp Reminders */}
+      {overdueDebts.length > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5 shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
+              <AlertTriangle size={16} /> Overdue Debts ({overdueDebts.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {overdueDebts.slice(0, 5).map((tx: any) => (
+              <div key={tx.id} className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-sm font-medium text-card-foreground">{tx.customers?.name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatKES(tx.amount)} · Due: {format(new Date(tx.due_date), 'MMM d, yyyy')}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-xs border-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]"
+                  onClick={() => {
+                    if (tx.customers?.phone) {
+                      openWhatsApp(
+                        tx.customers.phone,
+                        `Habari ${tx.customers.name},\n\nHii ni ukumbusho kwamba una deni la ${formatKES(tx.amount)} ambalo lilipaswa kulipwa tarehe ${format(new Date(tx.due_date), 'MMM d, yyyy')}.\n\nTafadhali lipa haraka iwezekanavyo.\n\nAsante! 🙏`
+                      );
+                    }
+                  }}
+                >
+                  <MessageCircle size={14} /> Remind
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+        <div className="grid md:grid-cols-2 gap-4">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">

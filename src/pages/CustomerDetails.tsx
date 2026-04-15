@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCustomer, useCustomerTransactions, useCustomerBalance, useAddTransaction } from '@/hooks/useCustomers';
+import { useCustomer, useCustomerTransactions, useCustomerBalance, useAddTransaction, useDeleteTransaction } from '@/hooks/useCustomers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Minus, Phone, MessageCircle, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Phone, MessageCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
 import { format, isPast, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -33,6 +33,7 @@ export default function CustomerDetails() {
   const { data: transactions, isLoading: txLoading } = useCustomerTransactions(id!);
   const balance = useCustomerBalance(id!);
   const addTransaction = useAddTransaction();
+  const deleteTx = useDeleteTransaction();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -234,6 +235,19 @@ export default function CustomerDetails() {
                 <span className={`text-sm font-semibold ${tx.type === 'payment' ? 'text-success' : 'text-destructive'}`}>
                   {tx.type === 'payment' ? '-' : '+'}{formatKES(tx.amount)}
                 </span>
+                <button
+                  onClick={() => {
+                    if (confirm('Delete this transaction?')) {
+                      deleteTx.mutate(tx.id, {
+                        onSuccess: () => toast.success('Transaction deleted'),
+                        onError: (err: any) => toast.error(err.message),
+                      });
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           ))}
