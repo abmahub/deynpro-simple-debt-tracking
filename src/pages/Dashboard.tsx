@@ -194,7 +194,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-        {/* Low Stock Products */}
+        <div className="grid md:grid-cols-2 gap-4">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
