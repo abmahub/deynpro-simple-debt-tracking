@@ -36,6 +36,12 @@ export default function Dashboard() {
   const { data: alerts } = useStockAlerts();
   const markRead = useMarkAlertRead();
   const markAllRead = useMarkAllAlertsRead();
+  const { data: allTransactions } = useAllTransactions();
+
+  // Find overdue debts with customer info
+  const overdueDebts = (allTransactions || []).filter(
+    (tx: any) => tx.type === 'debt' && tx.due_date && isPast(parseISO(tx.due_date))
+  );
 
   // Calculate sales stats
   const totalSalesRevenue = (sales || []).reduce((s, sale: any) => s + sale.total_amount, 0);
