@@ -288,6 +288,7 @@ export type Database = {
           customer_id: string
           date: string
           description: string | null
+          due_date: string | null
           id: string
           type: string
         }
@@ -297,6 +298,7 @@ export type Database = {
           customer_id: string
           date?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           type: string
         }
@@ -306,6 +308,7 @@ export type Database = {
           customer_id?: string
           date?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           type?: string
         }
