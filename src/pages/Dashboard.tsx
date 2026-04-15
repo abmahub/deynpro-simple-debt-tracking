@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart, Receipt, Bell, X, CheckCheck, MessageCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { format } from 'date-fns';
+import { format, isPast, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useAllTransactions } from '@/hooks/useCustomers';
-import { isPast, parseISO } from 'date-fns';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
