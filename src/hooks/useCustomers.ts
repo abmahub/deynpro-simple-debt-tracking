@@ -16,6 +16,7 @@ export interface Transaction {
   amount: number;
   date: string;
   description: string | null;
+  due_date: string | null;
   created_at: string;
 }
 
@@ -87,10 +88,11 @@ export function useAddCustomer() {
 export function useAddTransaction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (tx: { customer_id: string; type: 'debt' | 'payment'; amount: number; description?: string }) => {
+    mutationFn: async (tx: { customer_id: string; type: 'debt' | 'payment'; amount: number; description?: string; due_date?: string }) => {
       const { data, error } = await supabase.from('transactions').insert({
         ...tx,
         date: new Date().toISOString(),
+        due_date: tx.due_date || null,
       }).select().single();
       if (error) throw error;
       return data;
