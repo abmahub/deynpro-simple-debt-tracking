@@ -156,7 +156,44 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Overdue Debts with WhatsApp Reminders */}
+      {overdueDebts.length > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5 shadow-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
+              <AlertTriangle size={16} /> Overdue Debts ({overdueDebts.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {overdueDebts.slice(0, 5).map((tx: any) => (
+              <div key={tx.id} className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-sm font-medium text-card-foreground">{tx.customers?.name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatKES(tx.amount)} · Due: {format(new Date(tx.due_date), 'MMM d, yyyy')}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 text-xs border-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]"
+                  onClick={() => {
+                    if (tx.customers?.phone) {
+                      openWhatsApp(
+                        tx.customers.phone,
+                        `Habari ${tx.customers.name},\n\nHii ni ukumbusho kwamba una deni la ${formatKES(tx.amount)} ambalo lilipaswa kulipwa tarehe ${format(new Date(tx.due_date), 'MMM d, yyyy')}.\n\nTafadhali lipa haraka iwezekanavyo.\n\nAsante! 🙏`
+                      );
+                    }
+                  }}
+                >
+                  <MessageCircle size={14} /> Remind
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
         {/* Low Stock Products */}
         <Card className="shadow-card">
           <CardHeader className="pb-2">
