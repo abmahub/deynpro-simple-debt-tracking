@@ -5,13 +5,27 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useStockAlerts, useMarkAlertRead, useMarkAllAlertsRead } from '@/hooks/useStockAlerts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart, Receipt, Bell, X, CheckCheck } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, AlertTriangle, Package, ShoppingCart, Receipt, Bell, X, CheckCheck, MessageCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useAllTransactions } from '@/hooks/useCustomers';
+import { isPast, parseISO } from 'date-fns';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
+}
+
+function formatPhone(phone: string) {
+  let clean = phone.replace(/\s+/g, '');
+  if (clean.startsWith('0')) clean = '254' + clean.slice(1);
+  if (!clean.startsWith('+')) clean = '+' + clean;
+  return clean.replace('+', '');
+}
+
+function openWhatsApp(phone: string, message: string) {
+  const num = formatPhone(phone);
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 export default function Dashboard() {
