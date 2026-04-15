@@ -235,6 +235,19 @@ export default function CustomerDetails() {
                 <span className={`text-sm font-semibold ${tx.type === 'payment' ? 'text-success' : 'text-destructive'}`}>
                   {tx.type === 'payment' ? '-' : '+'}{formatKES(tx.amount)}
                 </span>
+                <button
+                  onClick={() => {
+                    if (confirm('Delete this transaction?')) {
+                      deleteTx.mutate(tx.id, {
+                        onSuccess: () => toast.success('Transaction deleted'),
+                        onError: (err: any) => toast.error(err.message),
+                      });
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           ))}
