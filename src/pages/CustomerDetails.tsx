@@ -33,6 +33,7 @@ export default function CustomerDetails() {
   const { data: transactions, isLoading: txLoading } = useCustomerTransactions(id!);
   const balance = useCustomerBalance(id!);
   const addTransaction = useAddTransaction();
+  const deleteTx = useDeleteTransaction();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
