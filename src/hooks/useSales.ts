@@ -24,6 +24,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   available: number;
+  cost_price: number;
 }
 
 export function useSales() {
