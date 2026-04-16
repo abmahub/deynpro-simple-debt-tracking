@@ -204,6 +204,7 @@ export default function Invoices() {
             <p className="text-sm font-bold text-card-foreground">{formatKES(creditTotal)}</p>
           </CardContent>
         </Card>
+      </div>
 
       {/* Grouped Invoices */}
       {groupKeys.length === 0 ? (
