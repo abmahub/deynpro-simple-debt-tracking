@@ -1,18 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
-import { useSales, useCreateSale, CartItem, SaleItem } from '@/hooks/useSales';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCreateSale, CartItem, SaleItem } from '@/hooks/useSales';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Plus, ShoppingCart, Trash2, CheckCircle, History, CreditCard, Banknote, Package } from 'lucide-react';
+import { Search, Plus, Trash2, CheckCircle, Package } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
