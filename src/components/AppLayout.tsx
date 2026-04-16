@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck
 import { useAuth } from '@/hooks/useAuth';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
