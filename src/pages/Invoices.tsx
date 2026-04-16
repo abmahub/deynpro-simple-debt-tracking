@@ -8,27 +8,54 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { FileText, Eye, Printer, Calendar, TrendingUp } from 'lucide-react';
-import { format, startOfDay, startOfMonth, startOfYear, isAfter, isSameDay, isSameMonth, isSameYear } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
 }
 
+// Consolidate same-day sales for same customer into one invoice
+function consolidateInvoices(sales: any[]) {
+  const map: Record<string, any> = {};
+  sales.forEach((sale: any) => {
+    const day = format(new Date(sale.date), 'yyyy-MM-dd');
+    const custKey = sale.customer_id || `walkin-${sale.id}`;
+    const key = `${day}_${custKey}`;
+    if (!map[key]) {
+      map[key] = {
+        ...sale,
+        consolidated_sales: [sale],
+        all_items: [...(sale.sale_items || [])],
+        total_amount: sale.total_amount,
+      };
+    } else {
+      map[key].consolidated_sales.push(sale);
+      map[key].all_items.push(...(sale.sale_items || []));
+      map[key].total_amount += sale.total_amount;
+    }
+  });
+  return Object.values(map);
+}
+
 export default function Invoices() {
   const { data: sales } = useSales();
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
-  const [selectedSale, setSelectedSale] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const now = new Date();
 
-  // Group sales by period
-  const groupedSales = useMemo(() => {
-    if (!sales) return {};
-    const groups: Record<string, any[]> = {};
+  // Consolidate sales: same customer + same day = 1 invoice
+  const invoices = useMemo(() => {
+    if (!sales) return [];
+    return consolidateInvoices(sales);
+  }, [sales]);
 
-    sales.forEach((sale: any) => {
-      const saleDate = new Date(sale.date);
+  // Group invoices by period
+  const groupedInvoices = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    invoices.forEach((inv: any) => {
+      const saleDate = new Date(inv.date);
       let key: string;
       if (period === 'daily') {
         key = format(saleDate, 'dd MMM yyyy');
@@ -38,19 +65,18 @@ export default function Invoices() {
         key = format(saleDate, 'yyyy');
       }
       if (!groups[key]) groups[key] = [];
-      groups[key].push(sale);
+      groups[key].push(inv);
     });
-
     return groups;
-  }, [sales, period]);
+  }, [invoices, period]);
 
-  const groupKeys = Object.keys(groupedSales);
+  const groupKeys = Object.keys(groupedInvoices);
 
   // Summary stats
-  const totalSales = sales?.length || 0;
-  const totalRevenue = (sales || []).reduce((s: number, sale: any) => s + sale.total_amount, 0);
-  const todaySales = (sales || []).filter((s: any) => isSameDay(new Date(s.date), now));
-  const todayRevenue = todaySales.reduce((s: number, sale: any) => s + sale.total_amount, 0);
+  const totalInvoices = invoices.length;
+  const totalRevenue = invoices.reduce((s: number, inv: any) => s + inv.total_amount, 0);
+  const todayInvoices = invoices.filter((inv: any) => isSameDay(new Date(inv.date), now));
+  const todayRevenue = todayInvoices.reduce((s: number, inv: any) => s + inv.total_amount, 0);
 
   const paymentLabel = (method: string) => {
     const labels: Record<string, string> = { cash: '💵 Cash', mpesa: '📱 M-Pesa', card: '💳 Card', credit: '📝 On Debt' };
@@ -74,7 +100,7 @@ export default function Invoices() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Invoice #${selectedSale?.id?.slice(0, 8)}</title>
+          <title>Invoice</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
             .header { text-align: center; margin-bottom: 20px; }
@@ -105,7 +131,7 @@ export default function Invoices() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
-          <p className="text-sm text-muted-foreground">View and print sale invoices</p>
+          <p className="text-sm text-muted-foreground">Same-day sales per customer are combined</p>
         </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
           <SelectTrigger className="w-[140px]">
@@ -124,10 +150,10 @@ export default function Invoices() {
         <Card className="shadow-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Today's Sales</span>
+              <span className="text-xs text-muted-foreground">Today</span>
               <Calendar size={14} className="text-primary" />
             </div>
-            <p className="text-lg font-bold text-card-foreground">{todaySales.length}</p>
+            <p className="text-lg font-bold text-card-foreground">{todayInvoices.length} invoices</p>
             <p className="text-xs text-muted-foreground">{formatKES(todayRevenue)}</p>
           </CardContent>
         </Card>
@@ -137,26 +163,16 @@ export default function Invoices() {
               <span className="text-xs text-muted-foreground">Total Invoices</span>
               <FileText size={14} className="text-primary" />
             </div>
-            <p className="text-lg font-bold text-card-foreground">{totalSales}</p>
+            <p className="text-lg font-bold text-card-foreground">{totalInvoices}</p>
           </CardContent>
         </Card>
-        <Card className="shadow-card">
+        <Card className="shadow-card col-span-2">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Total Revenue</span>
+              <span className="text-xs text-muted-foreground">Grand Total (All Invoices)</span>
               <TrendingUp size={14} className="text-success" />
             </div>
-            <p className="text-lg font-bold text-card-foreground">{formatKES(totalRevenue)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Periods</span>
-              <Calendar size={14} className="text-muted-foreground" />
-            </div>
-            <p className="text-lg font-bold text-card-foreground">{groupKeys.length}</p>
-            <p className="text-xs text-muted-foreground">{period} groups</p>
+            <p className="text-xl font-bold text-primary">{formatKES(totalRevenue)}</p>
           </CardContent>
         </Card>
       </div>
@@ -171,8 +187,8 @@ export default function Invoices() {
         </Card>
       ) : (
         groupKeys.map((key) => {
-          const groupSales = groupedSales[key];
-          const groupTotal = groupSales.reduce((s: number, sale: any) => s + sale.total_amount, 0);
+          const groupInvs = groupedInvoices[key];
+          const groupTotal = groupInvs.reduce((s: number, inv: any) => s + inv.total_amount, 0);
           return (
             <Card key={key} className="shadow-card">
               <CardHeader className="pb-2">
@@ -182,7 +198,7 @@ export default function Invoices() {
                     {key}
                   </CardTitle>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{groupSales.length} sale{groupSales.length > 1 ? 's' : ''}</p>
+                    <p className="text-xs text-muted-foreground">{groupInvs.length} invoice{groupInvs.length > 1 ? 's' : ''}</p>
                     <p className="text-sm font-bold text-primary">{formatKES(groupTotal)}</p>
                   </div>
                 </div>
@@ -192,8 +208,6 @@ export default function Invoices() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Invoice #</TableHead>
-                        <TableHead>Time</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Items</TableHead>
                         <TableHead>Payment</TableHead>
@@ -202,30 +216,27 @@ export default function Invoices() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {groupSales.map((sale: any) => (
-                        <TableRow key={sale.id}>
-                          <TableCell className="text-sm font-mono text-muted-foreground">
-                            #{sale.id.slice(0, 8)}
-                          </TableCell>
-                          <TableCell className="text-sm whitespace-nowrap">
-                            {format(new Date(sale.date), 'dd MMM, h:mm a')}
+                      {groupInvs.map((inv: any, idx: number) => (
+                        <TableRow key={inv.id + idx}>
+                          <TableCell className="text-sm">
+                            {inv.customers?.name || <span className="text-muted-foreground">Walk-in</span>}
+                            {inv.consolidated_sales.length > 1 && (
+                              <span className="text-xs text-muted-foreground ml-1">({inv.consolidated_sales.length} sales)</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">
-                            {sale.customers?.name || <span className="text-muted-foreground">Walk-in</span>}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {sale.sale_items?.length || 0} item{(sale.sale_items?.length || 0) !== 1 ? 's' : ''}
+                            {inv.all_items?.length || 0} item{(inv.all_items?.length || 0) !== 1 ? 's' : ''}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={paymentBadgeStyle(sale.payment_method)}>
-                              {paymentLabel(sale.payment_method)}
+                            <Badge variant="outline" className={paymentBadgeStyle(inv.payment_method)}>
+                              {paymentLabel(inv.payment_method)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-semibold text-sm">
-                            {formatKES(sale.total_amount)}
+                            {formatKES(inv.total_amount)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" variant="ghost" className="gap-1 text-primary" onClick={() => setSelectedSale(sale)}>
+                            <Button size="sm" variant="ghost" className="gap-1 text-primary" onClick={() => setSelectedInvoice(inv)}>
                               <Eye size={14} /> View
                             </Button>
                           </TableCell>
@@ -241,16 +252,16 @@ export default function Invoices() {
       )}
 
       {/* Invoice Detail Dialog */}
-      <Dialog open={!!selectedSale} onOpenChange={() => setSelectedSale(null)}>
+      <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText size={18} />
-              Invoice #{selectedSale?.id?.slice(0, 8)}
+              Invoice — {selectedInvoice?.customers?.name || 'Walk-in'}
             </DialogTitle>
           </DialogHeader>
 
-          {selectedSale && (
+          {selectedInvoice && (
             <div className="space-y-4">
               <div ref={printRef}>
                 <div className="header" style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -260,21 +271,23 @@ export default function Invoices() {
 
                 <div className="details text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Invoice #:</span>
-                    <span className="font-mono">{selectedSale.id.slice(0, 8)}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Date:</span>
-                    <span>{format(new Date(selectedSale.date), 'dd MMM yyyy, h:mm a')}</span>
+                    <span>{format(new Date(selectedInvoice.date), 'dd MMM yyyy')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Customer:</span>
-                    <span>{selectedSale.customers?.name || 'Walk-in Customer'}</span>
+                    <span>{selectedInvoice.customers?.name || 'Walk-in Customer'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Payment:</span>
-                    <span>{paymentLabel(selectedSale.payment_method)}</span>
+                    <span>{paymentLabel(selectedInvoice.payment_method)}</span>
                   </div>
+                  {selectedInvoice.consolidated_sales.length > 1 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Sales combined:</span>
+                      <span>{selectedInvoice.consolidated_sales.length}</span>
+                    </div>
+                  )}
                 </div>
 
                 <Separator className="my-3" />
@@ -289,7 +302,7 @@ export default function Invoices() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(selectedSale.sale_items || []).map((item: any, i: number) => (
+                    {(selectedInvoice.all_items || []).map((item: any, i: number) => (
                       <tr key={item.id || i} style={{ borderBottom: '1px solid hsl(var(--border))' }}>
                         <td style={{ padding: '8px 0', fontSize: 13 }}>{item.products?.name || 'Unknown'}</td>
                         <td style={{ textAlign: 'center', padding: '8px 0', fontSize: 13 }}>{item.quantity}</td>
@@ -304,7 +317,7 @@ export default function Invoices() {
 
                 <div className="flex justify-between items-center py-2">
                   <span className="font-bold text-base">Total</span>
-                  <span className="font-bold text-lg text-primary">{formatKES(selectedSale.total_amount)}</span>
+                  <span className="font-bold text-lg text-primary">{formatKES(selectedInvoice.total_amount)}</span>
                 </div>
               </div>
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCustomer, useCustomerTransactions, useCustomerBalance, useAddTransaction, useDeleteTransaction } from '@/hooks/useCustomers';
+import { useCustomer, useCustomerTransactions, useCustomerBalance, useAddTransaction, useDeleteTransaction, useUpdateTransaction } from '@/hooks/useCustomers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Minus, Phone, MessageCircle, Clock, AlertTriangle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Phone, MessageCircle, Clock, AlertTriangle, Trash2, Pencil } from 'lucide-react';
 import { format, isPast, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -34,12 +34,19 @@ export default function CustomerDetails() {
   const balance = useCustomerBalance(id!);
   const addTransaction = useAddTransaction();
   const deleteTx = useDeleteTransaction();
+  const updateTx = useUpdateTransaction();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [txType, setTxType] = useState<'debt' | 'payment'>('debt');
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Edit state
+  const [editTx, setEditTx] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
 
   const handleAddTx = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +70,34 @@ export default function CustomerDetails() {
     }
   };
 
+  const openEditDialog = (tx: any) => {
+    setEditTx(tx);
+    setEditAmount(String(tx.amount));
+    setEditDescription(tx.description || '');
+    setEditDueDate(tx.due_date ? format(new Date(tx.due_date), 'yyyy-MM-dd') : '');
+  };
+
+  const handleEditTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmount = parseFloat(editAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    try {
+      await updateTx.mutateAsync({
+        id: editTx.id,
+        amount: numAmount,
+        description: editDescription || undefined,
+        due_date: editTx.type === 'debt' && editDueDate ? new Date(editDueDate).toISOString() : undefined,
+      });
+      toast.success('Transaction updated');
+      setEditTx(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const handleSendReminder = (tx: any) => {
     if (!customer) return;
     const msg = `Habari ${customer.name},\n\nHii ni ukumbusho kwamba una deni la ${formatKES(tx.amount)}${tx.due_date ? ` ambalo lilipaswa kulipwa tarehe ${format(new Date(tx.due_date), 'MMM d, yyyy')}` : ''}.\n\nTafadhali lipa haraka iwezekanavyo.\n\nAsante! 🙏`;
@@ -77,7 +112,6 @@ export default function CustomerDetails() {
     openWhatsApp(customer.phone, msg);
   };
 
-  // Find overdue debts
   const overdueDebts = transactions?.filter(
     tx => tx.type === 'debt' && tx.due_date && isPast(parseISO(tx.due_date))
   ) || [];
@@ -169,30 +203,14 @@ export default function CustomerDetails() {
               <DialogTitle>{txType === 'debt' ? 'Add Debt' : 'Record Payment'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddTx} className="space-y-4">
-              <Input
-                type="number"
-                placeholder="Amount (KES)"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                required
-                min="1"
-              />
-              <Input
-                placeholder="Description (optional)"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-              />
+              <Input type="number" placeholder="Amount (KES)" value={amount} onChange={e => setAmount(e.target.value)} required min="1" />
+              <Input placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
               {txType === 'debt' && (
                 <div>
                   <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
                     <Clock size={14} /> Payment due date (optional)
                   </label>
-                  <Input
-                    type="date"
-                    value={dueDate}
-                    onChange={e => setDueDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
+                  <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
                 </div>
               )}
               <Button type="submit" className="w-full gradient-primary border-0" disabled={addTransaction.isPending}>
@@ -202,6 +220,38 @@ export default function CustomerDetails() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Transaction Dialog */}
+      <Dialog open={!!editTx} onOpenChange={(open) => !open && setEditTx(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+          </DialogHeader>
+          {editTx && (
+            <form onSubmit={handleEditTx} className="space-y-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Amount (KES)</label>
+                <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} required min="1" />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Description</label>
+                <Input placeholder="Description (optional)" value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+              </div>
+              {editTx.type === 'debt' && (
+                <div>
+                  <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
+                    <Clock size={14} /> Due date
+                  </label>
+                  <Input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} />
+                </div>
+              )}
+              <Button type="submit" className="w-full gradient-primary border-0" disabled={updateTx.isPending}>
+                {updateTx.isPending ? 'Saving...' : 'Update Transaction'}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Transaction History */}
       <Card className="shadow-card">
@@ -226,15 +276,18 @@ export default function CustomerDetails() {
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {tx.type === 'debt' && tx.due_date && isPast(parseISO(tx.due_date)) && (
-                  <button onClick={() => handleSendReminder(tx)} className="text-[hsl(142,70%,45%)]">
-                    <MessageCircle size={16} />
+                  <button onClick={() => handleSendReminder(tx)} className="text-[hsl(142,70%,45%)] p-1">
+                    <MessageCircle size={14} />
                   </button>
                 )}
                 <span className={`text-sm font-semibold ${tx.type === 'payment' ? 'text-success' : 'text-destructive'}`}>
                   {tx.type === 'payment' ? '-' : '+'}{formatKES(tx.amount)}
                 </span>
+                <button onClick={() => openEditDialog(tx)} className="text-muted-foreground hover:text-primary p-1">
+                  <Pencil size={13} />
+                </button>
                 <button
                   onClick={() => {
                     if (confirm('Delete this transaction?')) {
@@ -244,9 +297,9 @@ export default function CustomerDetails() {
                       });
                     }
                   }}
-                  className="text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive p-1"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={13} />
                 </button>
               </div>
             </div>
