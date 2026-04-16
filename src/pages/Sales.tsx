@@ -103,6 +103,11 @@ export default function Sales() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return; }
+    const belowCost = cart.find(item => item.price < item.cost_price);
+    if (belowCost) {
+      toast.error(`"${belowCost.name}" is priced below cost (KES ${belowCost.cost_price.toLocaleString()}). Increase the price to proceed.`);
+      return;
+    }
     if (paymentMethod === 'credit' && customerId === 'none') {
       toast.error('Debt/credit requires a registered customer');
       return;
