@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateSale, CartItem, SaleItem } from '@/hooks/useSales';
@@ -29,6 +29,7 @@ export default function Sales() {
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -182,7 +183,7 @@ export default function Sales() {
                           <Input
                             type="number"
                             min={0}
-                            className="h-8 text-right text-sm"
+                            className="h-8 text-right text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                             value={item.price}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value) || 0;
@@ -195,7 +196,7 @@ export default function Sales() {
                             type="number"
                             min={1}
                             max={item.available}
-                            className="h-8 text-center text-sm"
+                            className="h-8 text-center text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                             value={item.quantity}
                             onChange={(e) => {
                               const val = parseInt(e.target.value) || 1;
