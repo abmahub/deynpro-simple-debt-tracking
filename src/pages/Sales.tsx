@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Plus, Minus, ShoppingCart, Trash2, CheckCircle, History, CreditCard, Banknote, Package } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, CheckCircle, History, CreditCard, Banknote, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
