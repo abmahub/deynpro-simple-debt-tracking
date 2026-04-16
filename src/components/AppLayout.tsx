@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck
 import { useAuth } from '@/hooks/useAuth';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
@@ -20,7 +21,7 @@ const navItems = [
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
-  useKeyboardShortcuts();
+  const { showHelp, setShowHelp } = useKeyboardShortcuts();
   const { data: alerts } = useStockAlerts();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -136,6 +137,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
         ))}
       </nav>
+      <KeyboardShortcutsHelp open={showHelp} onOpenChange={setShowHelp} />
     </div>
   );
 }
