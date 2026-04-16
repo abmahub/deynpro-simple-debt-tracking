@@ -63,7 +63,7 @@ export default function Sales() {
         toast.error('Out of stock');
         return prev;
       }
-      return [...prev, { product_id: product.id, name: product.name, price: product.price, quantity: 1, available: product.quantity }];
+      return [...prev, { product_id: product.id, name: product.name, price: product.price, quantity: 1, available: product.quantity, cost_price: product.cost_price || 0 }];
     });
   };
 
