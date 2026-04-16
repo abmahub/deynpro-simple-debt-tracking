@@ -20,6 +20,7 @@ const navItems = [
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
+  useKeyboardShortcuts();
   const { data: alerts } = useStockAlerts();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
