@@ -137,6 +137,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
         ))}
       </nav>
+      <KeyboardShortcutsHelp open={showHelp} onOpenChange={setShowHelp} />
     </div>
   );
 }
