@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Eye, Printer, Calendar, TrendingUp } from 'lucide-react';
+import { FileText, Eye, Printer, Calendar, TrendingUp, Banknote, CreditCard, History } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 
 function formatKES(amount: number) {
