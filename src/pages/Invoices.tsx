@@ -181,6 +181,30 @@ export default function Invoices() {
         </Card>
       </div>
 
+      {/* Payment Method Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <Banknote size={18} className="mx-auto text-success mb-1" />
+            <p className="text-xs text-muted-foreground">Cash Sales</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(cashTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <CreditCard size={18} className="mx-auto text-primary mb-1" />
+            <p className="text-xs text-muted-foreground">M-Pesa</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(mpesaTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <History size={18} className="mx-auto text-destructive mb-1" />
+            <p className="text-xs text-muted-foreground">On Debt</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(creditTotal)}</p>
+          </CardContent>
+        </Card>
+
       {/* Grouped Invoices */}
       {groupKeys.length === 0 ? (
         <Card className="shadow-card">
