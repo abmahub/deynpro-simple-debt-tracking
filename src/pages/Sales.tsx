@@ -222,37 +222,51 @@ export default function Sales() {
                   <p className="text-sm text-muted-foreground text-center py-12">Tap "Add Products" to start a sale</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="border border-border">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[90px]">Item #</TableHead>
-                          <TableHead>Item Name</TableHead>
-                          <TableHead className="text-right">Buying Price</TableHead>
-                          <TableHead className="text-center w-[140px]">Quantity</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
+                        <TableRow className="border-b border-border">
+                          <TableHead className="w-[90px] border-r border-border">Item #</TableHead>
+                          <TableHead className="border-r border-border">Item Name</TableHead>
+                          <TableHead className="text-right border-r border-border w-[130px]">Selling Price</TableHead>
+                          <TableHead className="text-center border-r border-border w-[100px]">Quantity</TableHead>
+                          <TableHead className="text-right border-r border-border">Total</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {cart.map((item, index) => (
-                          <TableRow key={item.product_id}>
-                            <TableCell className="font-mono text-sm text-muted-foreground">
+                          <TableRow key={item.product_id} className="border-b border-border">
+                            <TableCell className="font-mono text-sm text-muted-foreground border-r border-border">
                               #{String(index + 1).padStart(6, '0')}
                             </TableCell>
-                            <TableCell className="font-medium text-sm">{item.name}</TableCell>
-                            <TableCell className="text-right text-sm">{formatKES(item.price)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-center gap-1">
-                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, -1)}>
-                                  <Minus size={12} />
-                                </Button>
-                                <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, 1)}>
-                                  <Plus size={12} />
-                                </Button>
-                              </div>
+                            <TableCell className="font-medium text-sm border-r border-border">{item.name}</TableCell>
+                            <TableCell className="border-r border-border p-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-8 text-right text-sm"
+                                value={item.price}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setCart(prev => prev.map(c => c.product_id === item.product_id ? { ...c, price: val } : c));
+                                }}
+                              />
                             </TableCell>
-                            <TableCell className="text-right font-semibold text-sm">{formatKES(item.price * item.quantity)}</TableCell>
+                            <TableCell className="border-r border-border p-1">
+                              <Input
+                                type="number"
+                                min={1}
+                                max={item.available}
+                                className="h-8 text-center text-sm"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 1;
+                                  if (val > item.available) { toast.error('Not enough stock'); return; }
+                                  setCart(prev => prev.map(c => c.product_id === item.product_id ? { ...c, quantity: Math.max(1, val) } : c));
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-sm border-r border-border">{formatKES(item.price * item.quantity)}</TableCell>
                             <TableCell>
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}>
                                 <Trash2 size={12} />
