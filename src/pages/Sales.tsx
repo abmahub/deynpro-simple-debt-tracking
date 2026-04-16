@@ -184,10 +184,15 @@ export default function Sales() {
                           <Input
                             type="number"
                             min={0}
-                            className="h-8 text-right text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
+                            className={`h-8 text-right text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield] ${item.price < item.cost_price ? 'border-destructive text-destructive' : ''}`}
                             value={item.price}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value) || 0;
+                              const product = (products || []).find(p => p.id === item.product_id);
+                              const costPrice = product?.cost_price || 0;
+                              if (val < costPrice) {
+                                toast.error(`Price can't be below cost (KES ${costPrice.toLocaleString()})`);
+                              }
                               setCart(prev => prev.map(c => c.product_id === item.product_id ? { ...c, price: val } : c));
                             }}
                           />
