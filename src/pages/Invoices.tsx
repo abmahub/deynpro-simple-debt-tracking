@@ -73,6 +73,10 @@ export default function Invoices() {
   const groupKeys = Object.keys(groupedInvoices);
 
   // Summary stats
+  const cashTotal = (sales || []).filter((s: any) => s.payment_method === 'cash').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+  const mpesaTotal = (sales || []).filter((s: any) => s.payment_method === 'mpesa').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+  const creditTotal = (sales || []).filter((s: any) => s.payment_method === 'credit').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+
   const totalInvoices = invoices.length;
   const totalRevenue = invoices.reduce((s: number, inv: any) => s + inv.total_amount, 0);
   const todayInvoices = invoices.filter((inv: any) => isSameDay(new Date(inv.date), now));
