@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useProducts, useAddProduct, useUpdateProduct, useDeleteProduct } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Search, Pencil, Trash2, Package, AlertTriangle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -102,11 +102,27 @@ export default function Products() {
   const [addOpen, setAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const searchRef = useRef<HTMLInputElement>(null);
+  const filterRef = useRef<HTMLButtonElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+
   const filtered = (products || []).filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.barcode || '').includes(search);
     const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      // Focus first row in table
+      const firstRow = tableRef.current?.querySelector('tbody tr') as HTMLElement;
+      firstRow?.focus();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      filterRef.current?.focus();
+    }
+  };
 
   const handleAdd = async (data: any) => {
     try {
@@ -138,6 +154,25 @@ export default function Products() {
     }
   };
 
+  const handleRowKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const rows = tableRef.current?.querySelectorAll('tbody tr') as NodeListOf<HTMLElement>;
+      rows?.[index + 1]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (index === 0) {
+        searchRef.current?.focus();
+      } else {
+        const rows = tableRef.current?.querySelectorAll('tbody tr') as NodeListOf<HTMLElement>;
+        rows?.[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      searchRef.current?.focus();
+    }
+  };
+
   return (
     <div className="space-y-4 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
@@ -159,10 +194,17 @@ export default function Products() {
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input
+            ref={searchRef}
+            placeholder="Search products..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className="pl-9"
+          />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectTrigger ref={filterRef} className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -172,55 +214,82 @@ export default function Products() {
 
       {isLoading && <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>}
 
-      <div className="space-y-2">
-        {filtered.map(product => (
-          <Card key={product.id} className="shadow-card">
-            <CardContent className="p-4">
-              {editingId === product.id ? (
-                <ProductForm
-                  product={product}
-                  suppliers={suppliers || []}
-                  onSubmit={(data) => handleUpdate(product.id, data)}
-                  isPending={updateProduct.isPending}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package size={16} className="text-primary" />
-                      <p className="font-medium text-card-foreground">{product.name}</p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-sm font-semibold text-primary">KES {product.price.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground">Cost: KES {product.cost_price.toLocaleString()}</span>
-                      <StockBadge quantity={product.quantity} threshold={product.low_stock_threshold} />
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {product.category && <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">{product.category}</span>}
-                      {product.suppliers?.name && <span className="text-xs text-muted-foreground">Supplier: {product.suppliers.name}</span>}
-                      {product.expiry_date && (
-                        <span className={`text-xs ${new Date(product.expiry_date) < new Date() ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          Exp: {product.expiry_date}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 ml-2">
-                    <Button variant="ghost" size="icon" onClick={() => setEditingId(product.id)}><Pencil size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(product.id)}><Trash2 size={14} /></Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-        {!isLoading && filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">
-            {search || categoryFilter !== 'all' ? 'No products found' : 'No products yet. Add your first one!'}
-          </p>
-        )}
-      </div>
+      {!isLoading && filtered.length > 0 && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <Table ref={tableRef}>
+            <TableHeader>
+              <TableRow className="border-b border-border">
+                <TableHead className="border-r border-border w-20">#</TableHead>
+                <TableHead className="border-r border-border">Name</TableHead>
+                <TableHead className="border-r border-border">Category</TableHead>
+                <TableHead className="border-r border-border text-right">Selling (KES)</TableHead>
+                <TableHead className="border-r border-border text-right">Cost (KES)</TableHead>
+                <TableHead className="border-r border-border text-center">Qty</TableHead>
+                <TableHead className="border-r border-border">Status</TableHead>
+                <TableHead className="w-24 text-center">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((product, index) => (
+                <TableRow
+                  key={product.id}
+                  tabIndex={0}
+                  onKeyDown={(e) => handleRowKeyDown(e, index)}
+                  className="border-b border-border focus:bg-primary/5 focus:outline-none"
+                >
+                  {editingId === product.id ? (
+                    <TableCell colSpan={8} className="p-4">
+                      <ProductForm
+                        product={product}
+                        suppliers={suppliers || []}
+                        onSubmit={(data) => handleUpdate(product.id, data)}
+                        isPending={updateProduct.isPending}
+                        onCancel={() => setEditingId(null)}
+                      />
+                    </TableCell>
+                  ) : (
+                    <>
+                      <TableCell className="border-r border-border font-mono text-muted-foreground">
+                        #{String(index + 1).padStart(5, '0')}
+                      </TableCell>
+                      <TableCell className="border-r border-border font-medium text-card-foreground">
+                        {product.name}
+                      </TableCell>
+                      <TableCell className="border-r border-border text-sm text-muted-foreground">
+                        {product.category || '—'}
+                      </TableCell>
+                      <TableCell className="border-r border-border text-right font-semibold text-primary">
+                        {product.price.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="border-r border-border text-right text-sm text-muted-foreground">
+                        {product.cost_price.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="border-r border-border text-center">
+                        {product.quantity}
+                      </TableCell>
+                      <TableCell className="border-r border-border">
+                        <StockBadge quantity={product.quantity} threshold={product.low_stock_threshold} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(product.id)}><Pencil size={14} /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(product.id)}><Trash2 size={14} /></Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {!isLoading && filtered.length === 0 && (
+        <p className="text-center text-muted-foreground py-8">
+          {search || categoryFilter !== 'all' ? 'No products found' : 'No products yet. Add your first one!'}
+        </p>
+      )}
     </div>
   );
 }
