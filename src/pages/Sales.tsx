@@ -39,6 +39,7 @@ export default function Sales() {
 
   // Filter products in modal
   const filteredProducts = useMemo(() => {
+    setFocusedIndex(0);
     return (products || []).filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(modalSearch.toLowerCase()) || (p.barcode || '').includes(modalSearch);
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
