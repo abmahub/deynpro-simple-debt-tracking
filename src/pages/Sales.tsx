@@ -27,7 +27,7 @@ export default function Sales() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerId, setCustomerId] = useState('none');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [historyFilter, setHistoryFilter] = useState('all');
+  
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -128,34 +128,6 @@ export default function Sales() {
     }
   };
 
-  const filteredSales = (sales || []).filter((s: any) => {
-    if (historyFilter === 'all') return true;
-    return s.payment_method === historyFilter;
-  });
-
-  const paymentBadge = (method: string) => {
-    const styles: Record<string, string> = {
-      cash: 'bg-success/10 text-success border-success/20',
-      mpesa: 'bg-primary/10 text-primary border-primary/20',
-      card: 'bg-accent/10 text-accent-foreground border-accent/20',
-      credit: 'bg-destructive/10 text-destructive border-destructive/20',
-    };
-    const labels: Record<string, string> = {
-      cash: '💵 Cash',
-      mpesa: '📱 M-Pesa',
-      card: '💳 Card',
-      credit: '📝 On Debt',
-    };
-    return (
-      <Badge variant="outline" className={styles[method] || ''}>
-        {labels[method] || method}
-      </Badge>
-    );
-  };
-
-  const cashTotal = (sales || []).filter((s: any) => s.payment_method === 'cash').reduce((sum: number, s: any) => sum + s.total_amount, 0);
-  const creditTotal = (sales || []).filter((s: any) => s.payment_method === 'credit').reduce((sum: number, s: any) => sum + s.total_amount, 0);
-  const mpesaTotal = (sales || []).filter((s: any) => s.payment_method === 'mpesa').reduce((sum: number, s: any) => sum + s.total_amount, 0);
 
   return (
     <div className="space-y-4 pb-20 md:pb-0">
@@ -164,30 +136,6 @@ export default function Sales() {
         <p className="text-sm text-muted-foreground">Sell products and view sales history</p>
       </div>
 
-      {/* Payment Method Summary Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="shadow-card">
-          <CardContent className="p-3 text-center">
-            <Banknote size={18} className="mx-auto text-success mb-1" />
-            <p className="text-xs text-muted-foreground">Cash Sales</p>
-            <p className="text-sm font-bold text-card-foreground">{formatKES(cashTotal)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-3 text-center">
-            <CreditCard size={18} className="mx-auto text-primary mb-1" />
-            <p className="text-xs text-muted-foreground">M-Pesa</p>
-            <p className="text-sm font-bold text-card-foreground">{formatKES(mpesaTotal)}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-3 text-center">
-            <History size={18} className="mx-auto text-destructive mb-1" />
-            <p className="text-xs text-muted-foreground">On Debt</p>
-            <p className="text-sm font-bold text-card-foreground">{formatKES(creditTotal)}</p>
-          </CardContent>
-        </Card>
-      </div>
 
       {showSuccess && (
         <Card className="border-primary bg-primary/5">
