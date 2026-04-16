@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Eye, Printer, Calendar, TrendingUp } from 'lucide-react';
+import { FileText, Eye, Printer, Calendar, TrendingUp, Banknote, CreditCard, History } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 
 function formatKES(amount: number) {
@@ -73,6 +73,10 @@ export default function Invoices() {
   const groupKeys = Object.keys(groupedInvoices);
 
   // Summary stats
+  const cashTotal = (sales || []).filter((s: any) => s.payment_method === 'cash').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+  const mpesaTotal = (sales || []).filter((s: any) => s.payment_method === 'mpesa').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+  const creditTotal = (sales || []).filter((s: any) => s.payment_method === 'credit').reduce((sum: number, s: any) => sum + s.total_amount, 0);
+
   const totalInvoices = invoices.length;
   const totalRevenue = invoices.reduce((s: number, inv: any) => s + inv.total_amount, 0);
   const todayInvoices = invoices.filter((inv: any) => isSameDay(new Date(inv.date), now));
@@ -173,6 +177,31 @@ export default function Invoices() {
               <TrendingUp size={14} className="text-success" />
             </div>
             <p className="text-xl font-bold text-primary">{formatKES(totalRevenue)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payment Method Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <Banknote size={18} className="mx-auto text-success mb-1" />
+            <p className="text-xs text-muted-foreground">Cash Sales</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(cashTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <CreditCard size={18} className="mx-auto text-primary mb-1" />
+            <p className="text-xs text-muted-foreground">M-Pesa</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(mpesaTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardContent className="p-3 text-center">
+            <History size={18} className="mx-auto text-destructive mb-1" />
+            <p className="text-xs text-muted-foreground">On Debt</p>
+            <p className="text-sm font-bold text-card-foreground">{formatKES(creditTotal)}</p>
           </CardContent>
         </Card>
       </div>
