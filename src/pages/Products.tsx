@@ -129,7 +129,13 @@ export default function Products() {
     try {
       await deleteProduct.mutateAsync(id);
       toast.success('Product deleted');
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      if (err.message?.includes('foreign key constraint') || err.message?.includes('sale_items')) {
+        toast.error('Cannot delete this product — it has sales history. You can edit it instead.');
+      } else {
+        toast.error(err.message);
+      }
+    }
   };
 
   return (
