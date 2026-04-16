@@ -300,14 +300,30 @@ export default function Sales() {
           </div>
 
           {/* Product List */}
-          <div className="flex-1 overflow-y-auto space-y-2 mt-2">
-            {filteredProducts.map(product => {
+          <div
+            className="flex-1 overflow-y-auto space-y-2 mt-2 outline-none"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setFocusedIndex(prev => Math.min(prev + 1, filteredProducts.length - 1));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setFocusedIndex(prev => Math.max(prev - 1, 0));
+              } else if (e.key === 'Enter' && filteredProducts[focusedIndex]) {
+                e.preventDefault();
+                addToCart(filteredProducts[focusedIndex]);
+              }
+            }}
+            tabIndex={0}
+          >
+            {filteredProducts.map((product, idx) => {
               const inCart = cart.find(c => c.product_id === product.id);
               return (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${idx === focusedIndex ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
                   onClick={() => addToCart(product)}
+                  onMouseEnter={() => setFocusedIndex(idx)}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
