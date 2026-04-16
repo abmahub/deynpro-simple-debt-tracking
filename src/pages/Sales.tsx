@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useSales, useCreateSale, CartItem, SaleItem } from '@/hooks/useSales';
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Minus, ShoppingCart, Trash2, CheckCircle, History, CreditCard, Banknote } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, Plus, Minus, ShoppingCart, Trash2, CheckCircle, History, CreditCard, Banknote, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -22,16 +23,29 @@ export default function Sales() {
   const { data: customers } = useCustomers();
   const { data: sales } = useSales();
   const createSale = useCreateSale();
-  const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerId, setCustomerId] = useState('none');
   const [showSuccess, setShowSuccess] = useState(false);
   const [historyFilter, setHistoryFilter] = useState('all');
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
-  const availableProducts = (products || []).filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) || (p.barcode || '').includes(search)
-  );
+  // Get unique categories
+  const categories = useMemo(() => {
+    const cats = new Set((products || []).map(p => p.category).filter(Boolean));
+    return Array.from(cats) as string[];
+  }, [products]);
+
+  // Filter products in modal
+  const filteredProducts = useMemo(() => {
+    return (products || []).filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(modalSearch.toLowerCase()) || (p.barcode || '').includes(modalSearch);
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, modalSearch, categoryFilter]);
 
   const addToCart = (product: any) => {
     setCart(prev => {
@@ -69,8 +83,30 @@ export default function Sales() {
 
   const total = cart.reduce((s, item) => s + item.price * item.quantity, 0);
 
+  // When payment method changes to credit, validate customer is selected
+  const handlePaymentMethodChange = (value: string) => {
+    if (value === 'credit' && customerId === 'none') {
+      toast.error('Select a registered customer first to use credit/debt');
+      return;
+    }
+    setPaymentMethod(value);
+  };
+
+  // When customer changes, reset credit if going to walk-in
+  const handleCustomerChange = (value: string) => {
+    setCustomerId(value);
+    if (value === 'none' && paymentMethod === 'credit') {
+      setPaymentMethod('cash');
+      toast.info('Payment changed to Cash — debt requires a registered customer');
+    }
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return; }
+    if (paymentMethod === 'credit' && customerId === 'none') {
+      toast.error('Debt/credit requires a registered customer');
+      return;
+    }
     try {
       const items: SaleItem[] = cart.map(item => ({
         product_id: item.product_id,
@@ -92,7 +128,6 @@ export default function Sales() {
     }
   };
 
-  // Filter sales history
   const filteredSales = (sales || []).filter((s: any) => {
     if (historyFilter === 'all') return true;
     return s.payment_method === historyFilter;
@@ -118,7 +153,6 @@ export default function Sales() {
     );
   };
 
-  // Summary stats
   const cashTotal = (sales || []).filter((s: any) => s.payment_method === 'cash').reduce((sum: number, s: any) => sum + s.total_amount, 0);
   const creditTotal = (sales || []).filter((s: any) => s.payment_method === 'credit').reduce((sum: number, s: any) => sum + s.total_amount, 0);
   const mpesaTotal = (sales || []).filter((s: any) => s.payment_method === 'mpesa').reduce((sum: number, s: any) => sum + s.total_amount, 0);
@@ -176,36 +210,47 @@ export default function Sales() {
         {/* POS Tab */}
         <TabsContent value="pos">
           <div className="grid md:grid-cols-2 gap-4">
-            {/* Product search */}
+            {/* Add Products Button */}
             <div className="space-y-3">
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search products or scan barcode..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-              </div>
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                {availableProducts.map(product => (
-                  <Card key={product.id} className="shadow-card cursor-pointer hover:shadow-card-hover transition-shadow" onClick={() => addToCart(product)}>
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-card-foreground text-sm">{product.name}</p>
-                        <div className="flex gap-2 items-center">
-                          <span className="text-sm font-semibold text-primary">{formatKES(product.price)}</span>
-                          <span className={`text-xs ${product.quantity < 1 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                            {product.quantity} left
-                          </span>
+              <Button className="w-full gap-2" variant="outline" onClick={() => setProductModalOpen(true)}>
+                <Package size={16} /> Add Products to Cart
+              </Button>
+
+              {/* Quick summary of cart items */}
+              {cart.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium">Items in cart:</p>
+                  {cart.map(item => (
+                    <Card key={item.product_id} className="shadow-card">
+                      <CardContent className="p-3 flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-card-foreground truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatKES(item.price)} × {item.quantity} = {formatKES(item.price * item.quantity)}</p>
                         </div>
-                      </div>
-                      <Button size="icon" variant="ghost" className="text-primary"><Plus size={18} /></Button>
-                    </CardContent>
-                  </Card>
-                ))}
-                {availableProducts.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">No products found. Add products first.</p>
-                )}
-              </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, -1)}>
+                            <Minus size={12} />
+                          </Button>
+                          <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, 1)}>
+                            <Plus size={12} />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}>
+                            <Trash2 size={12} />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {cart.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Tap "Add Products" to start a sale</p>
+              )}
             </div>
 
-            {/* Cart */}
+            {/* Cart Summary & Checkout */}
             <Card className="shadow-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -214,28 +259,8 @@ export default function Sales() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {cart.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">Click products to add them</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No items yet</p>
                 )}
-                {cart.map(item => (
-                  <div key={item.product_id} className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-card-foreground truncate">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatKES(item.price * item.quantity)}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, -1)}>
-                        <Minus size={12} />
-                      </Button>
-                      <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, 1)}>
-                        <Plus size={12} />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}>
-                        <Trash2 size={12} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
 
                 {cart.length > 0 && (
                   <div className="border-t border-border pt-3 space-y-3">
@@ -245,27 +270,32 @@ export default function Sales() {
                     </div>
 
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Payment Method</label>
-                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">💵 Cash</SelectItem>
-                          <SelectItem value="mpesa">📱 M-Pesa</SelectItem>
-                          <SelectItem value="card">💳 Card</SelectItem>
-                          <SelectItem value="credit">📝 Credit (On Debt)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
                       <label className="text-xs text-muted-foreground mb-1 block">Customer</label>
-                      <Select value={customerId} onValueChange={setCustomerId}>
+                      <Select value={customerId} onValueChange={handleCustomerChange}>
                         <SelectTrigger><SelectValue placeholder="Customer (optional)" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Walk-in Customer</SelectItem>
                           {(customers || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Payment Method</label>
+                      <Select value={paymentMethod} onValueChange={handlePaymentMethodChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">💵 Cash</SelectItem>
+                          <SelectItem value="mpesa">📱 M-Pesa</SelectItem>
+                          <SelectItem value="card">💳 Card</SelectItem>
+                          {customerId !== 'none' && (
+                            <SelectItem value="credit">📝 Credit (On Debt)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {customerId === 'none' && (
+                        <p className="text-xs text-muted-foreground mt-1">💡 Select a registered customer to enable credit/debt</p>
+                      )}
                     </div>
 
                     <Button className="w-full gradient-primary border-0" onClick={handleCheckout} disabled={createSale.isPending}>
@@ -343,6 +373,77 @@ export default function Sales() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Product Picker Modal */}
+      <Dialog open={productModalOpen} onOpenChange={setProductModalOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Package size={18} /> Select Products</DialogTitle>
+          </DialogHeader>
+          
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search name or barcode..."
+                value={modalSearch}
+                onChange={e => setModalSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[140px] h-9 text-sm">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Product List */}
+          <div className="flex-1 overflow-y-auto space-y-2 mt-2">
+            {filteredProducts.map(product => {
+              const inCart = cart.find(c => c.product_id === product.id);
+              return (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => addToCart(product)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-sm font-semibold text-primary">{formatKES(product.price)}</span>
+                      <span className={`text-xs ${product.quantity < 1 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {product.quantity} in stock
+                      </span>
+                      {product.category && (
+                        <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {inCart && (
+                      <Badge className="bg-primary/10 text-primary border-primary/20">{inCart.quantity} in cart</Badge>
+                    )}
+                    <Button size="icon" variant="ghost" className="text-primary h-8 w-8">
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredProducts.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No products found</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
