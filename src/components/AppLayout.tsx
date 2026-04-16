@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
