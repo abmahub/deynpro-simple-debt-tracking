@@ -209,66 +209,74 @@ export default function Sales() {
 
         {/* POS Tab */}
         <TabsContent value="pos">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {/* Add Products Button */}
-            <div className="space-y-3">
-              <Button className="w-full gap-2" variant="outline" onClick={() => setProductModalOpen(true)}>
-                <Package size={16} /> Add Products to Cart
-              </Button>
+            <Button className="w-full gap-2" variant="outline" onClick={() => setProductModalOpen(true)}>
+              <Package size={16} /> Add Products
+            </Button>
 
-              {/* Quick summary of cart items */}
-              {cart.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground font-medium">Items in cart:</p>
-                  {cart.map(item => (
-                    <Card key={item.product_id} className="shadow-card">
-                      <CardContent className="p-3 flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-card-foreground truncate">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatKES(item.price)} × {item.quantity} = {formatKES(item.price * item.quantity)}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, -1)}>
-                            <Minus size={12} />
-                          </Button>
-                          <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, 1)}>
-                            <Plus size={12} />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}>
-                            <Trash2 size={12} />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              {cart.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">Tap "Add Products" to start a sale</p>
-              )}
-            </div>
-
-            {/* Cart Summary & Checkout */}
+            {/* Items Table */}
             <Card className="shadow-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <ShoppingCart size={16} /> Cart ({cart.length} items)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {cart.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No items yet</p>
+              <CardContent className="p-0">
+                {cart.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-12">Tap "Add Products" to start a sale</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[90px]">Item #</TableHead>
+                          <TableHead>Item Name</TableHead>
+                          <TableHead className="text-right">Buying Price</TableHead>
+                          <TableHead className="text-center w-[140px]">Quantity</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cart.map((item, index) => (
+                          <TableRow key={item.product_id}>
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              #{String(index + 1).padStart(6, '0')}
+                            </TableCell>
+                            <TableCell className="font-medium text-sm">{item.name}</TableCell>
+                            <TableCell className="text-right text-sm">{formatKES(item.price)}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-1">
+                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, -1)}>
+                                  <Minus size={12} />
+                                </Button>
+                                <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQuantity(item.product_id, 1)}>
+                                  <Plus size={12} />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-sm">{formatKES(item.price * item.quantity)}</TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeFromCart(item.product_id)}>
+                                <Trash2 size={12} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
+              </CardContent>
+            </Card>
 
-                {cart.length > 0 && (
-                  <div className="border-t border-border pt-3 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-card-foreground">Total</span>
-                      <span className="text-lg font-bold text-primary">{formatKES(total)}</span>
-                    </div>
+            {/* Checkout Section */}
+            {cart.length > 0 && (
+              <Card className="shadow-card">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-card-foreground">Total ({cart.length} items)</span>
+                    <span className="text-xl font-bold text-primary">{formatKES(total)}</span>
+                  </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">Customer</label>
                       <Select value={customerId} onValueChange={handleCustomerChange}>
@@ -297,14 +305,14 @@ export default function Sales() {
                         <p className="text-xs text-muted-foreground mt-1">💡 Select a registered customer to enable credit/debt</p>
                       )}
                     </div>
-
-                    <Button className="w-full gradient-primary border-0" onClick={handleCheckout} disabled={createSale.isPending}>
-                      {createSale.isPending ? 'Processing...' : `Checkout — ${formatKES(total)}`}
-                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  <Button className="w-full gradient-primary border-0" onClick={handleCheckout} disabled={createSale.isPending}>
+                    {createSale.isPending ? 'Processing...' : `Checkout — ${formatKES(total)}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
