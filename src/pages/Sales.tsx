@@ -19,7 +19,7 @@ function formatKES(amount: number) {
 export default function Sales() {
   const { data: products } = useProducts();
   const { data: customers } = useCustomers();
-  const { data: sales } = useSales();
+  
   const createSale = useCreateSale();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
