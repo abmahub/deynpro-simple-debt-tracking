@@ -125,6 +125,25 @@ export function useDeleteTransaction() {
   });
 }
 
+export function useUpdateTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, amount, description, due_date }: { id: string; amount: number; description?: string; due_date?: string }) => {
+      const { data, error } = await supabase.from('transactions').update({
+        amount,
+        description: description || null,
+        due_date: due_date || null,
+      }).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 export function useAddTransaction() {
   const qc = useQueryClient();
   return useMutation({
