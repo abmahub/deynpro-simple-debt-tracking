@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Search, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, ChevronRight, Pencil, Trash2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportToExcel } from '@/lib/excelExport';
 
 export default function Customers() {
   const { data: customers, isLoading } = useCustomers();
@@ -68,28 +69,41 @@ export default function Customers() {
           <h1 className="text-2xl font-bold text-foreground">Customers</h1>
           <p className="text-sm text-muted-foreground">{customers?.length || 0} total</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) { setEditingId(null); setName(''); setPhone(''); }
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gradient-primary border-0 gap-1">
-              <Plus size={16} /> Add
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <Input placeholder="Customer name" value={name} onChange={e => setName(e.target.value)} required />
-              <Input placeholder="Phone (e.g. 0712345678)" value={phone} onChange={e => setPhone(e.target.value)} required />
-              <Button type="submit" className="w-full gradient-primary border-0" disabled={addCustomer.isPending || updateCustomer.isPending}>
-                {editingId ? 'Update Customer' : 'Add Customer'}
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-1" onClick={() => {
+            const rows = (customers || []).map(c => ({
+              Name: c.name,
+              Phone: c.phone,
+              'Created At': c.created_at,
+            }));
+            exportToExcel('DeynPro_Customers', [{ name: 'Customers', rows }]);
+            toast.success('Excel downloaded');
+          }}>
+            <FileSpreadsheet size={16} /> Excel
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) { setEditingId(null); setName(''); setPhone(''); }
+          }}>
+            <DialogTrigger asChild>
+              <Button className="gradient-primary border-0 gap-1">
+                <Plus size={16} /> Add
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingId ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAdd} className="space-y-4">
+                <Input placeholder="Customer name" value={name} onChange={e => setName(e.target.value)} required />
+                <Input placeholder="Phone (e.g. 0712345678)" value={phone} onChange={e => setPhone(e.target.value)} required />
+                <Button type="submit" className="w-full gradient-primary border-0" disabled={addCustomer.isPending || updateCustomer.isPending}>
+                  {editingId ? 'Update Customer' : 'Add Customer'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="relative">
