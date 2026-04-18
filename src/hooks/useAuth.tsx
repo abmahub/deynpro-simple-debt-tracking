@@ -41,8 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (username: string, password: string) => {
-    const email = usernameToEmail(username);
+  const signIn = async (identifier: string, password: string) => {
+    const trimmed = identifier.trim();
+    // If user typed a real email (contains @), use it directly. Otherwise treat as username.
+    const email = trimmed.includes('@') ? trimmed.toLowerCase() : usernameToEmail(trimmed);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
