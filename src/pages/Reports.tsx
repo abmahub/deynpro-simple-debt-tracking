@@ -86,22 +86,93 @@ export default function Reports() {
 
   return (
     <div className="space-y-4 pb-20 md:pb-0">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
           <p className="text-sm text-muted-foreground">Business performance overview</p>
         </div>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="365">Last year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              try {
+                exportToExcel('DeynPro_Report', [
+                  {
+                    name: 'Summary',
+                    rows: [
+                      { Metric: 'Period (days)', Value: period },
+                      { Metric: 'Total Revenue (KES)', Value: totalRevenue },
+                      { Metric: 'Total Expenses (KES)', Value: totalExpenseAmt },
+                      { Metric: 'Profit/Loss (KES)', Value: profit },
+                      { Metric: 'Sales Count', Value: filteredSales.length },
+                      { Metric: 'Expenses Count', Value: filteredExpenses.length },
+                      { Metric: 'Products in Inventory', Value: products?.length || 0 },
+                    ],
+                  },
+                  {
+                    name: 'Sales',
+                    rows: filteredSales.map((s: any) => ({
+                      Date: format(new Date(s.date), 'yyyy-MM-dd HH:mm'),
+                      Customer: s.customers?.name || 'Walk-in',
+                      'Payment Method': s.payment_method,
+                      'Total (KES)': s.total_amount,
+                      Items: (s.sale_items || []).map((i: any) => `${i.products?.name} x${i.quantity}`).join(', '),
+                    })),
+                  },
+                  {
+                    name: 'Expenses',
+                    rows: filteredExpenses.map((e: any) => ({
+                      Date: format(new Date(e.date), 'yyyy-MM-dd'),
+                      Title: e.title,
+                      Category: e.category,
+                      'Amount (KES)': e.amount,
+                      Description: e.description || '',
+                    })),
+                  },
+                  {
+                    name: 'Products',
+                    rows: (products || []).map((p: any) => ({
+                      Name: p.name,
+                      Category: p.category || '',
+                      'Selling Price (KES)': p.price,
+                      'Cost Price (KES)': p.cost_price,
+                      Quantity: p.quantity,
+                      'Low Stock Threshold': p.low_stock_threshold,
+                      'Expiry Date': p.expiry_date || '',
+                      Barcode: p.barcode || '',
+                    })),
+                  },
+                  {
+                    name: 'Top Products',
+                    rows: topProducts.map((p, i) => ({
+                      Rank: i + 1,
+                      Product: p.name,
+                      'Qty Sold': p.qty,
+                      'Revenue (KES)': p.revenue,
+                    })),
+                  },
+                ]);
+                toast.success('Excel file downloaded');
+              } catch (e: any) {
+                toast.error('Export failed: ' + e.message);
+              }
+            }}
+          >
+            <Download size={16} className="mr-1" /> Excel
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
