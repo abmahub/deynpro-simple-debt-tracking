@@ -60,6 +60,7 @@ export default {
     signIn: 'تسجيل الدخول',
     pleaseWait: 'يرجى الانتظار...',
     contactAdmin: 'تواصل مع المسؤول إذا كنت بحاجة إلى حساب.',
+    signedInAs: 'تم تسجيل الدخول باسم',
   },
   dashboard: {
     title: 'لوحة التحكم',

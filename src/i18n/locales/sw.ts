@@ -60,6 +60,7 @@ export default {
     signIn: 'Ingia',
     pleaseWait: 'Tafadhali subiri...',
     contactAdmin: 'Wasiliana na msimamizi wako ikiwa unahitaji akaunti.',
+    signedInAs: 'Umeingia kama',
   },
   dashboard: {
     title: 'Dashibodi',
