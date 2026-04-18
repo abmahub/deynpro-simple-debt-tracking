@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProducts, useAddProduct, useUpdateProduct, useDeleteProduct } from '@/hooks/useProducts';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,7 @@ function StockBadge({ quantity, threshold }: { quantity: number; threshold: numb
 }
 
 export default function Products() {
+  const { t } = useTranslation();
   const { data: products, isLoading } = useProducts();
   const { data: suppliers } = useSuppliers();
   const addProduct = useAddProduct();
@@ -130,7 +132,7 @@ export default function Products() {
 
   const handleInlineAdd = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.cost_price) {
-      toast.error('Name, selling price, and cost price are required');
+      toast.error(t('products.requiredFields'));
       return;
     }
     try {
@@ -147,7 +149,7 @@ export default function Products() {
         description: newProduct.description || null,
         image_url: null,
       });
-      toast.success('Product added!');
+      toast.success(t('products.added'));
       setNewProduct({ name: '', price: '', cost_price: '', quantity: '', category: '', barcode: '', expiry_date: '', low_stock_threshold: '5', supplier_id: '', description: '' });
       setIsAdding(false);
     } catch (err: any) { toast.error(err.message); }
@@ -156,19 +158,19 @@ export default function Products() {
   const handleUpdate = async (id: string, data: any) => {
     try {
       await updateProduct.mutateAsync({ id, ...data });
-      toast.success('Product updated!');
+      toast.success(t('products.updated'));
       setEditingId(null);
     } catch (err: any) { toast.error(err.message); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product?')) return;
+    if (!confirm(t('products.deleteConfirm'))) return;
     try {
       await deleteProduct.mutateAsync(id);
-      toast.success('Product deleted');
+      toast.success(t('products.deleted'));
     } catch (err: any) {
       if (err.message?.includes('foreign key constraint') || err.message?.includes('sale_items')) {
-        toast.error('Cannot delete this product — it has sales history.');
+        toast.error(t('products.cantDelete'));
       } else {
         toast.error(err.message);
       }
@@ -196,50 +198,50 @@ export default function Products() {
     <div className="space-y-4 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Products</h1>
-          <p className="text-sm text-muted-foreground">{products?.length || 0} total</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('products.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('customers.total', { count: products?.length || 0 })}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-1" onClick={() => {
             const rows = (products || []).map(p => ({
-              Name: p.name,
-              Category: p.category || '',
-              'Selling Price': p.price,
-              'Cost Price': p.cost_price,
-              Quantity: p.quantity,
-              'Low Stock At': p.low_stock_threshold,
-              Barcode: p.barcode || '',
-              'Expiry Date': p.expiry_date || '',
-              Supplier: p.suppliers?.name || '',
-              Description: p.description || '',
+              [t('common.name')]: p.name,
+              [t('common.category')]: p.category || '',
+              [t('products.sellingPrice')]: p.price,
+              [t('products.costPrice')]: p.cost_price,
+              [t('common.quantity')]: p.quantity,
+              [t('products.lowStockAt')]: p.low_stock_threshold,
+              [t('products.barcode')]: p.barcode || '',
+              [t('products.expiry')]: p.expiry_date || '',
+              [t('nav.suppliers')]: p.suppliers?.name || '',
+              [t('common.description')]: p.description || '',
             }));
-            exportToExcel('DeynPro_Products', [{ name: 'Products', rows }]);
-            toast.success('Excel downloaded');
+            exportToExcel('DeynPro_Products', [{ name: t('products.title'), rows }]);
+            toast.success(t('common.excelDownloaded'));
           }}>
-            <FileSpreadsheet size={16} /> Excel
+            <FileSpreadsheet size={16} /> {t('common.excel')}
           </Button>
           <Button className="gradient-primary border-0 gap-1" onClick={() => setIsAdding(true)}>
-            <Plus size={16} /> Add
+            <Plus size={16} /> {t('common.add')}
           </Button>
         </div>
       </div>
 
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={searchRef}
-            placeholder="Search products..."
+            placeholder={t('products.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="pl-9"
+            className="ps-9"
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger ref={filterRef} className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">{t('sales.allCategories')}</SelectItem>
             {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -253,14 +255,14 @@ export default function Products() {
             <TableHeader>
               <TableRow className="border-b border-border">
                 <TableHead className="border-r border-border w-16">#</TableHead>
-                <TableHead className="border-r border-border">Name</TableHead>
-                <TableHead className="border-r border-border">Category</TableHead>
-                <TableHead className="border-r border-border text-right">Selling</TableHead>
-                <TableHead className="border-r border-border text-right">Buying</TableHead>
-                <TableHead className="border-r border-border text-center">Qty</TableHead>
-                <TableHead className="border-r border-border">Expiry</TableHead>
-                <TableHead className="border-r border-border">Status</TableHead>
-                <TableHead className="w-24 text-center">Actions</TableHead>
+                <TableHead className="border-r border-border">{t('common.name')}</TableHead>
+                <TableHead className="border-r border-border">{t('common.category')}</TableHead>
+                <TableHead className="border-r border-border text-right">{t('products.selling')}</TableHead>
+                <TableHead className="border-r border-border text-right">{t('products.buying')}</TableHead>
+                <TableHead className="border-r border-border text-center">{t('products.qty')}</TableHead>
+                <TableHead className="border-r border-border">{t('products.expiry')}</TableHead>
+                <TableHead className="border-r border-border">{t('common.status')}</TableHead>
+                <TableHead className="w-24 text-center">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,7 +270,7 @@ export default function Products() {
                 <TableRow className="border-b border-border bg-primary/5">
                   <TableCell className="border-r border-border text-muted-foreground font-mono text-xs">NEW</TableCell>
                   <TableCell className="border-r border-border p-1">
-                    <Input placeholder="Name *" value={newProduct.name} onChange={e => updateNew('name', e.target.value)} className="h-8 text-sm" autoFocus />
+                    <Input placeholder={t('products.nameRequired')} value={newProduct.name} onChange={e => updateNew('name', e.target.value)} className="h-8 text-sm" autoFocus />
                   </TableCell>
                   <TableCell className="border-r border-border p-1">
                     <Select value={newProduct.category} onValueChange={v => updateNew('category', v)}>
@@ -295,7 +297,7 @@ export default function Products() {
                   <TableCell className="text-center p-1">
                     <div className="flex justify-center gap-1">
                       <Button size="sm" className="h-7 text-xs gradient-primary border-0" onClick={handleInlineAdd} disabled={addProduct.isPending}>
-                        {addProduct.isPending ? '...' : 'Save'}
+                        {addProduct.isPending ? '...' : t('common.save')}
                       </Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setIsAdding(false)}>✕</Button>
                     </div>
