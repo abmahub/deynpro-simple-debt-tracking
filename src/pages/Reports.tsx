@@ -5,9 +5,12 @@ import { useProducts } from '@/hooks/useProducts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Receipt } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Package, Receipt, Download } from 'lucide-react';
 import { format, subDays, startOfDay, isAfter } from 'date-fns';
+import { exportToExcel } from '@/lib/excelExport';
+import { toast } from 'sonner';
 
 function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
