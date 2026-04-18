@@ -1,8 +1,9 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText, UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText, UserCircle2, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth, emailToUsername } from '@/hooks/useAuth';
+import { useIsAdmin } from '@/hooks/useRole';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { signOut, user } = useAuth();
   const username = emailToUsername(user?.email);
+  const { isAdmin } = useIsAdmin();
   const { showHelp, setShowHelp } = useKeyboardShortcuts();
   const { data: alerts } = useStockAlerts();
   const location = useLocation();
@@ -28,6 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: '/expenses', icon: Receipt, label: t('nav.expenses') },
     { to: '/invoices', icon: FileText, label: t('nav.invoices') },
     { to: '/reports', icon: BarChart3, label: t('nav.reports') },
+    ...(isAdmin ? [{ to: '/admin', icon: Shield, label: 'Admin Panel' }] : []),
   ];
 
   const unreadAlerts = alerts?.length || 0;

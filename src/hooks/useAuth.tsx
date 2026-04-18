@@ -9,8 +9,8 @@ export const usernameToEmail = (username: string) =>
 
 export const emailToUsername = (email?: string | null) => {
   if (!email) return '';
-  const [name, domain] = email.split('@');
-  return domain === USERNAME_DOMAIN ? name : email;
+  const [name] = email.split('@');
+  return name || email;
 };
 
 interface AuthContextType {
