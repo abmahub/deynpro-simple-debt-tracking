@@ -88,9 +88,10 @@ function ProductForm({ product, suppliers, onSubmit, isPending, onCancel }: {
 }
 
 function StockBadge({ quantity, threshold }: { quantity: number; threshold: number }) {
-  if (quantity === 0) return <Badge variant="destructive">Out of stock</Badge>;
-  if (quantity <= threshold) return <Badge className="bg-warning/20 text-warning border-warning/30">Low stock</Badge>;
-  return <Badge variant="secondary">{quantity} in stock</Badge>;
+  const { t } = useTranslation();
+  if (quantity === 0) return <Badge variant="destructive">{t('products.outOfStock')}</Badge>;
+  if (quantity <= threshold) return <Badge className="bg-warning/20 text-warning border-warning/30">{t('products.lowStock')}</Badge>;
+  return <Badge variant="secondary">{t('products.inStock', { count: quantity })}</Badge>;
 }
 
 export default function Products() {
