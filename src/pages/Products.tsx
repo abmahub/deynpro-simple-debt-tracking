@@ -199,9 +199,29 @@ export default function Products() {
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
           <p className="text-sm text-muted-foreground">{products?.length || 0} total</p>
         </div>
-        <Button className="gradient-primary border-0 gap-1" onClick={() => setIsAdding(true)}>
-          <Plus size={16} /> Add
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-1" onClick={() => {
+            const rows = (products || []).map(p => ({
+              Name: p.name,
+              Category: p.category || '',
+              'Selling Price': p.price,
+              'Cost Price': p.cost_price,
+              Quantity: p.quantity,
+              'Low Stock At': p.low_stock_threshold,
+              Barcode: p.barcode || '',
+              'Expiry Date': p.expiry_date || '',
+              Supplier: p.suppliers?.name || '',
+              Description: p.description || '',
+            }));
+            exportToExcel('DeynPro_Products', [{ name: 'Products', rows }]);
+            toast.success('Excel downloaded');
+          }}>
+            <FileSpreadsheet size={16} /> Excel
+          </Button>
+          <Button className="gradient-primary border-0 gap-1" onClick={() => setIsAdding(true)}>
+            <Plus size={16} /> Add
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2">
