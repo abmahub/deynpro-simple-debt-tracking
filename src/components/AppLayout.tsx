@@ -1,8 +1,8 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText, UserCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, emailToUsername } from '@/hooks/useAuth';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const username = emailToUsername(user?.email);
   const { showHelp, setShowHelp } = useKeyboardShortcuts();
   const { data: alerts } = useStockAlerts();
   const location = useLocation();
@@ -56,8 +57,17 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-foreground/20" />
-          <nav className="absolute start-0 top-0 bottom-0 w-64 bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-primary mb-8">{t('app.name')}</h2>
+          <nav className="absolute start-0 top-0 bottom-0 w-64 bg-card p-6 shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-primary">{t('app.name')}</h2>
+            {username && (
+              <div className="mt-3 mb-6 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60">
+                <UserCircle2 size={16} className="text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{t('auth.signedInAs')}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+                </div>
+              </div>
+            )}
             <div className="space-y-1">
               {navItems.map(item => (
                 <Link
@@ -85,9 +95,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex">
         {/* Desktop sidebar */}
         <aside className="hidden md:flex md:w-56 lg:w-64 flex-col fixed inset-y-0 start-0 bg-card border-e border-border z-30">
-          <div className="p-6">
+          <div className="p-6 pb-4">
             <h1 className="text-2xl font-bold text-primary tracking-tight">{t('app.name')}</h1>
             <p className="text-xs text-muted-foreground mt-0.5">{t('app.tagline')}</p>
+            {username && (
+              <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60">
+                <UserCircle2 size={18} className="text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{t('auth.signedInAs')}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+                </div>
+              </div>
+            )}
           </div>
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
             {navItems.map(item => (

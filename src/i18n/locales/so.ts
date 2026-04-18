@@ -60,6 +60,7 @@ export default {
     signIn: 'Gal',
     pleaseWait: 'Fadlan sug...',
     contactAdmin: 'La xidhiidh maamulahaaga haddii aad u baahan tahay akoon.',
+    signedInAs: 'Waxaad u gashay',
   },
   dashboard: {
     title: 'Dashboard',

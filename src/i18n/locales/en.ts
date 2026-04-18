@@ -63,6 +63,7 @@ export default {
     signIn: 'Sign In',
     pleaseWait: 'Please wait...',
     contactAdmin: 'Contact your administrator if you need an account.',
+    signedInAs: 'Signed in as',
   },
   dashboard: {
     title: 'Dashboard',
