@@ -73,6 +73,17 @@ export default function Customers() {
           setDialogOpen(open);
           if (!open) { setEditingId(null); setName(''); setPhone(''); }
         }}>
+          <Button variant="outline" className="gap-1" onClick={() => {
+            const rows = (customers || []).map(c => ({
+              Name: c.name,
+              Phone: c.phone,
+              'Created At': c.created_at,
+            }));
+            exportToExcel('DeynPro_Customers', [{ name: 'Customers', rows }]);
+            toast.success('Excel downloaded');
+          }}>
+            <FileSpreadsheet size={16} /> Excel
+          </Button>
           <DialogTrigger asChild>
             <Button className="gradient-primary border-0 gap-1">
               <Plus size={16} /> Add
