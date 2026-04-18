@@ -9,23 +9,17 @@ import { toast } from 'sonner';
 
 export default function Login() {
   const { t } = useTranslation();
-  const { signIn, signUp } = useAuth();
-  const [email, setEmail] = useState('');
+  const { signIn } = useAuth();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isSignUp) {
-        await signUp(email, password);
-        toast.success(t('auth.accountCreated'));
-      } else {
-        await signIn(email, password);
-        toast.success(t('auth.welcome'));
-      }
+      await signIn(username, password);
+      toast.success(t('auth.welcome'));
     } catch (err: any) {
       toast.error(err.message || t('auth.authFailed'));
     } finally {
@@ -48,10 +42,13 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Input
-                type="email"
-                placeholder={t('auth.email')}
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={t('auth.username')}
+                value={username}
+                onChange={e => setUsername(e.target.value)}
                 required
                 className="h-11"
               />
@@ -68,14 +65,11 @@ export default function Login() {
               />
             </div>
             <Button type="submit" className="w-full h-11 gradient-primary border-0" disabled={loading}>
-              {loading ? t('auth.pleaseWait') : isSignUp ? t('auth.createAccount') : t('auth.signIn')}
+              {loading ? t('auth.pleaseWait') : t('auth.signIn')}
             </Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            {isSignUp ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
-            <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary font-medium hover:underline">
-              {isSignUp ? t('auth.signIn') : t('auth.signUp')}
-            </button>
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            {t('auth.contactAdmin')}
           </p>
         </CardContent>
       </Card>
