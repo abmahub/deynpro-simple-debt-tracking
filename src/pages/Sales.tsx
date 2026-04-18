@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProducts } from '@/hooks/useProducts';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useCreateSale, CartItem, SaleItem } from '@/hooks/useSales';
@@ -17,6 +18,7 @@ function formatKES(amount: number) {
 }
 
 export default function Sales() {
+  const { t } = useTranslation();
   const { data: products } = useProducts();
   const { data: customers } = useCustomers();
   
@@ -52,7 +54,7 @@ export default function Sales() {
       const existing = prev.find(item => item.product_id === product.id);
       if (existing) {
         if (existing.quantity >= product.quantity) {
-          toast.error('Not enough stock');
+          toast.error(t('sales.notEnoughStock'));
           return prev;
         }
         return prev.map(item =>
@@ -60,7 +62,7 @@ export default function Sales() {
         );
       }
       if (product.quantity < 1) {
-        toast.error('Out of stock');
+        toast.error(t('sales.outOfStock'));
         return prev;
       }
       return [...prev, { product_id: product.id, name: product.name, price: product.price, quantity: 1, available: product.quantity, cost_price: product.cost_price || 0 }];
@@ -72,7 +74,7 @@ export default function Sales() {
       if (item.product_id !== productId) return item;
       const newQty = item.quantity + delta;
       if (newQty < 1) return item;
-      if (newQty > item.available) { toast.error('Not enough stock'); return item; }
+      if (newQty > item.available) { toast.error(t('sales.notEnoughStock')); return item; }
       return { ...item, quantity: newQty };
     }));
   };
@@ -86,30 +88,29 @@ export default function Sales() {
   // When payment method changes to credit, validate customer is selected
   const handlePaymentMethodChange = (value: string) => {
     if (value === 'credit' && customerId === 'none') {
-      toast.error('Select a registered customer first to use credit/debt');
+      toast.error(t('sales.selectCustomerFirst'));
       return;
     }
     setPaymentMethod(value);
   };
 
-  // When customer changes, reset credit if going to walk-in
   const handleCustomerChange = (value: string) => {
     setCustomerId(value);
     if (value === 'none' && paymentMethod === 'credit') {
       setPaymentMethod('cash');
-      toast.info('Payment changed to Cash — debt requires a registered customer');
+      toast.info(t('sales.paymentChangedToCash'));
     }
   };
 
   const handleCheckout = async () => {
-    if (cart.length === 0) { toast.error('Cart is empty'); return; }
+    if (cart.length === 0) { toast.error(t('sales.cartIsEmpty')); return; }
     const belowCost = cart.find(item => item.price < item.cost_price);
     if (belowCost) {
-      toast.error(`"${belowCost.name}" is priced below cost (KES ${belowCost.cost_price.toLocaleString()}). Increase the price to proceed.`);
+      toast.error(t('sales.belowCost', { name: belowCost.name, cost: belowCost.cost_price.toLocaleString() }));
       return;
     }
     if (paymentMethod === 'credit' && customerId === 'none') {
-      toast.error('Debt/credit requires a registered customer');
+      toast.error(t('sales.creditRequiresCustomer'));
       return;
     }
     try {
@@ -127,7 +128,7 @@ export default function Sales() {
       setCart([]);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-      toast.success('Sale completed!');
+      toast.success(t('sales.saleCompleted'));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -137,8 +138,8 @@ export default function Sales() {
   return (
     <div className="space-y-4 pb-20 md:pb-0">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Sales</h1>
-        <p className="text-sm text-muted-foreground">Sell products and view sales history</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('sales.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('sales.subtitle')}</p>
       </div>
 
 
@@ -147,34 +148,32 @@ export default function Sales() {
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle className="text-primary" size={24} />
             <div>
-              <p className="font-medium text-primary">Sale completed!</p>
-              <p className="text-sm text-muted-foreground">Stock has been updated automatically.</p>
+              <p className="font-medium text-primary">{t('sales.saleCompleted')}</p>
+              <p className="text-sm text-muted-foreground">{t('sales.stockUpdated')}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       <div className="space-y-4">
-        {/* Add Products Button */}
         <Button className="w-full gap-2" variant="outline" onClick={() => setProductModalOpen(true)}>
-          <Package size={16} /> Add Products
+          <Package size={16} /> {t('sales.addProducts')}
         </Button>
 
-        {/* Items Table */}
         <Card className="shadow-card">
           <CardContent className="p-0">
             {cart.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-12">Tap "Add Products" to start a sale</p>
+              <p className="text-sm text-muted-foreground text-center py-12">{t('sales.cartEmpty')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <Table className="border border-border">
                   <TableHeader>
                     <TableRow className="border-b border-border">
-                      <TableHead className="w-[90px] border-r border-border">Item #</TableHead>
-                      <TableHead className="border-r border-border">Item Name</TableHead>
-                      <TableHead className="text-right border-r border-border w-[130px]">Selling Price</TableHead>
-                      <TableHead className="text-center border-r border-border w-[100px]">Quantity</TableHead>
-                      <TableHead className="text-right border-r border-border">Total</TableHead>
+                      <TableHead className="w-[90px] border-r border-border">{t('sales.itemNo')}</TableHead>
+                      <TableHead className="border-r border-border">{t('sales.itemName')}</TableHead>
+                      <TableHead className="text-right border-r border-border w-[130px]">{t('products.sellingPrice')}</TableHead>
+                      <TableHead className="text-center border-r border-border w-[100px]">{t('common.quantity')}</TableHead>
+                      <TableHead className="text-right border-r border-border">{t('common.total')}</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -196,7 +195,7 @@ export default function Sales() {
                               const product = (products || []).find(p => p.id === item.product_id);
                               const costPrice = product?.cost_price || 0;
                               if (val < costPrice) {
-                                toast.error(`Price can't be below cost (KES ${costPrice.toLocaleString()})`);
+                                toast.error(t('sales.priceCantBeBelowCost', { cost: costPrice.toLocaleString() }));
                               }
                               setCart(prev => prev.map(c => c.product_id === item.product_id ? { ...c, price: val } : c));
                             }}
@@ -211,7 +210,7 @@ export default function Sales() {
                             value={item.quantity}
                             onChange={(e) => {
                               const val = parseInt(e.target.value) || 1;
-                              if (val > item.available) { toast.error('Not enough stock'); return; }
+                              if (val > item.available) { toast.error(t('sales.notEnoughStock')); return; }
                               setCart(prev => prev.map(c => c.product_id === item.product_id ? { ...c, quantity: Math.max(1, val) } : c));
                             }}
                           />
@@ -236,43 +235,43 @@ export default function Sales() {
           <Card className="shadow-card">
             <CardContent className="p-4 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-card-foreground">Total ({cart.length} items)</span>
+                <span className="font-semibold text-card-foreground">{t('sales.totalItems', { count: cart.length })}</span>
                 <span className="text-xl font-bold text-primary">{formatKES(total)}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Customer</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{t('common.customer')}</label>
                   <Select value={customerId} onValueChange={handleCustomerChange}>
-                    <SelectTrigger><SelectValue placeholder="Customer (optional)" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={t('sales.customerOptional')} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Walk-in Customer</SelectItem>
+                      <SelectItem value="none">{t('sales.walkIn')}</SelectItem>
                       {(customers || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Payment Method</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{t('sales.paymentMethod')}</label>
                   <Select value={paymentMethod} onValueChange={handlePaymentMethodChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">💵 Cash</SelectItem>
-                      <SelectItem value="mpesa">📱 M-Pesa</SelectItem>
-                      <SelectItem value="card">💳 Card</SelectItem>
+                      <SelectItem value="cash">{t('sales.cash')}</SelectItem>
+                      <SelectItem value="mpesa">{t('sales.mpesa')}</SelectItem>
+                      <SelectItem value="card">{t('sales.card')}</SelectItem>
                       {customerId !== 'none' && (
-                        <SelectItem value="credit">📝 Credit (On Debt)</SelectItem>
+                        <SelectItem value="credit">{t('sales.credit')}</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
                   {customerId === 'none' && (
-                    <p className="text-xs text-muted-foreground mt-1">💡 Select a registered customer to enable credit/debt</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('sales.creditHint')}</p>
                   )}
                 </div>
               </div>
 
               <Button className="w-full gradient-primary border-0" onClick={handleCheckout} disabled={createSale.isPending}>
-                {createSale.isPending ? 'Processing...' : `Checkout — ${formatKES(total)}`}
+                {createSale.isPending ? t('sales.processing') : `${t('sales.checkout')} — ${formatKES(total)}`}
               </Button>
             </CardContent>
           </Card>
@@ -283,26 +282,25 @@ export default function Sales() {
       <Dialog open={productModalOpen} onOpenChange={setProductModalOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Package size={18} /> Select Products</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Package size={18} /> {t('sales.selectProducts')}</DialogTitle>
           </DialogHeader>
-          
-          {/* Filters */}
+
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search name or barcode..."
+                placeholder={t('sales.searchByNameBarcode')}
                 value={modalSearch}
                 onChange={e => setModalSearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
+                className="ps-9 h-9 text-sm"
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-[140px] h-9 text-sm">
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder={t('common.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">{t('sales.allCategories')}</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -341,7 +339,7 @@ export default function Sales() {
                     <div className="flex gap-2 items-center">
                       <span className="text-sm font-semibold text-primary">{formatKES(product.price)}</span>
                       <span className={`text-xs ${product.quantity < 1 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {product.quantity} in stock
+                        {t('products.inStock', { count: product.quantity })}
                       </span>
                       {product.category && (
                         <Badge variant="secondary" className="text-xs">{product.category}</Badge>
@@ -350,7 +348,7 @@ export default function Sales() {
                   </div>
                   <div className="flex items-center gap-2">
                     {inCart && (
-                      <Badge className="bg-primary/10 text-primary border-primary/20">{inCart.quantity} in cart</Badge>
+                      <Badge className="bg-primary/10 text-primary border-primary/20">{t('sales.inCart', { count: inCart.quantity })}</Badge>
                     )}
                     <Button size="icon" variant="ghost" className="text-primary h-8 w-8">
                       <Plus size={16} />
@@ -360,7 +358,7 @@ export default function Sales() {
               );
             })}
             {filteredProducts.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">No products found</p>
+              <p className="text-sm text-muted-foreground text-center py-8">{t('sales.noProductsFound')}</p>
             )}
           </div>
         </DialogContent>

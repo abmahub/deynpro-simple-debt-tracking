@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useCustomers, useAddCustomer, useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 import { exportToExcel } from '@/lib/excelExport';
 
 export default function Customers() {
+  const { t } = useTranslation();
   const { data: customers, isLoading } = useCustomers();
   const addCustomer = useAddCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -30,10 +32,10 @@ export default function Customers() {
     try {
       if (editingId) {
         await updateCustomer.mutateAsync({ id: editingId, name, phone });
-        toast.success('Customer updated!');
+        toast.success(t('customers.updated'));
       } else {
         await addCustomer.mutateAsync({ name, phone });
-        toast.success('Customer added!');
+        toast.success(t('customers.added'));
       }
       setName(''); setPhone(''); setDialogOpen(false); setEditingId(null);
     } catch (err: any) {
@@ -53,10 +55,10 @@ export default function Customers() {
   const handleDelete = async (e: React.MouseEvent, id: string, customerName: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`Delete ${customerName}? This will also delete all their transactions.`)) return;
+    if (!confirm(t('customers.deleteConfirm', { name: customerName }))) return;
     try {
       await deleteCustomer.mutateAsync(id);
-      toast.success('Customer deleted');
+      toast.success(t('customers.deleted'));
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -66,20 +68,20 @@ export default function Customers() {
     <div className="space-y-4 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Customers</h1>
-          <p className="text-sm text-muted-foreground">{customers?.length || 0} total</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('customers.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('customers.total', { count: customers?.length || 0 })}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-1" onClick={() => {
             const rows = (customers || []).map(c => ({
-              Name: c.name,
-              Phone: c.phone,
-              'Created At': c.created_at,
+              [t('common.name')]: c.name,
+              [t('common.phone')]: c.phone,
+              [t('common.date')]: c.created_at,
             }));
-            exportToExcel('DeynPro_Customers', [{ name: 'Customers', rows }]);
-            toast.success('Excel downloaded');
+            exportToExcel('DeynPro_Customers', [{ name: t('customers.title'), rows }]);
+            toast.success(t('common.excelDownloaded'));
           }}>
-            <FileSpreadsheet size={16} /> Excel
+            <FileSpreadsheet size={16} /> {t('common.excel')}
           </Button>
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
@@ -87,18 +89,18 @@ export default function Customers() {
           }}>
             <DialogTrigger asChild>
               <Button className="gradient-primary border-0 gap-1">
-                <Plus size={16} /> Add
+                <Plus size={16} /> {t('common.add')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingId ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+                <DialogTitle>{editingId ? t('customers.editCustomer') : t('customers.addCustomer')}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAdd} className="space-y-4">
-                <Input placeholder="Customer name" value={name} onChange={e => setName(e.target.value)} required />
-                <Input placeholder="Phone (e.g. 0712345678)" value={phone} onChange={e => setPhone(e.target.value)} required />
+                <Input placeholder={t('customers.customerName')} value={name} onChange={e => setName(e.target.value)} required />
+                <Input placeholder={t('customers.phonePlaceholder')} value={phone} onChange={e => setPhone(e.target.value)} required />
                 <Button type="submit" className="w-full gradient-primary border-0" disabled={addCustomer.isPending || updateCustomer.isPending}>
-                  {editingId ? 'Update Customer' : 'Add Customer'}
+                  {editingId ? t('common.update') : t('customers.addCustomer')}
                 </Button>
               </form>
             </DialogContent>
@@ -107,12 +109,12 @@ export default function Customers() {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search customers..."
+          placeholder={t('common.search')}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="pl-9"
+          className="ps-9"
         />
       </div>
 
@@ -138,7 +140,7 @@ export default function Customers() {
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => handleDelete(e, customer.id, customer.name)}>
                     <Trash2 size={14} className="text-destructive" />
                   </Button>
-                  <ChevronRight size={18} className="text-muted-foreground" />
+                  <ChevronRight size={18} className="text-muted-foreground rtl:rotate-180" />
                 </div>
               </CardContent>
             </Card>
@@ -146,7 +148,7 @@ export default function Customers() {
         ))}
         {!isLoading && filtered.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            {search ? 'No customers found' : 'No customers yet. Add your first one!'}
+            {search ? t('customers.noResults') : t('customers.empty')}
           </p>
         )}
       </div>

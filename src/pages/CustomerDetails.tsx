@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useCustomer, useCustomerTransactions, useCustomerBalance, useAddTransaction, useDeleteTransaction, useUpdateTransaction } from '@/hooks/useCustomers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ function openWhatsApp(phone: string, message: string) {
 }
 
 export default function CustomerDetails() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: customer, isLoading: custLoading } = useCustomer(id!);
@@ -42,7 +44,6 @@ export default function CustomerDetails() {
   const [txType, setTxType] = useState<'debt' | 'payment'>('debt');
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Edit state
   const [editTx, setEditTx] = useState<any>(null);
   const [editAmount, setEditAmount] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -52,7 +53,7 @@ export default function CustomerDetails() {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      toast.error('Enter a valid amount');
+      toast.error(t('customers.invalidAmount'));
       return;
     }
     try {
@@ -63,7 +64,7 @@ export default function CustomerDetails() {
         description: description || undefined,
         due_date: txType === 'debt' && dueDate ? new Date(dueDate).toISOString() : undefined,
       });
-      toast.success(txType === 'debt' ? 'Debt added' : 'Payment recorded');
+      toast.success(txType === 'debt' ? t('customers.debtAdded') : t('customers.paymentRecorded'));
       setAmount(''); setDescription(''); setDueDate(''); setDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message);
@@ -81,7 +82,7 @@ export default function CustomerDetails() {
     e.preventDefault();
     const numAmount = parseFloat(editAmount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      toast.error('Enter a valid amount');
+      toast.error(t('customers.invalidAmount'));
       return;
     }
     try {
@@ -91,7 +92,7 @@ export default function CustomerDetails() {
         description: editDescription || undefined,
         due_date: editTx.type === 'debt' && editDueDate ? new Date(editDueDate).toISOString() : undefined,
       });
-      toast.success('Transaction updated');
+      toast.success(t('customers.txUpdated'));
       setEditTx(null);
     } catch (err: any) {
       toast.error(err.message);
@@ -100,15 +101,22 @@ export default function CustomerDetails() {
 
   const handleSendReminder = (tx: any) => {
     if (!customer) return;
-    const msg = `Habari ${customer.name},\n\nHii ni ukumbusho kwamba una deni la ${formatKES(tx.amount)}${tx.due_date ? ` ambalo lilipaswa kulipwa tarehe ${format(new Date(tx.due_date), 'MMM d, yyyy')}` : ''}.\n\nTafadhali lipa haraka iwezekanavyo.\n\nAsante! 🙏`;
+    const dueClause = tx.due_date
+      ? t('whatsapp.dueClause', { date: format(new Date(tx.due_date), 'MMM d, yyyy') })
+      : '';
+    const msg = t('whatsapp.debtReminder', {
+      name: customer.name,
+      amount: tx.amount.toLocaleString(),
+      dueClause,
+    });
     openWhatsApp(customer.phone, msg);
   };
 
   const handleWhatsApp = () => {
     if (!customer) return;
     const msg = balance.balance > 0
-      ? `Habari ${customer.name}, una deni la jumla ${formatKES(balance.balance)}. Tafadhali lipa haraka. Asante!`
-      : `Habari ${customer.name}! Asante kwa biashara yako. 🙏`;
+      ? t('whatsapp.debtSummary', { name: customer.name, amount: balance.balance.toLocaleString() })
+      : t('whatsapp.thanks', { name: customer.name });
     openWhatsApp(customer.phone, msg);
   };
 
@@ -121,7 +129,7 @@ export default function CustomerDetails() {
   return (
     <div className="space-y-4 pb-20 md:pb-0">
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft size={16} /> Back
+        <ArrowLeft size={16} /> {t('common.back')}
       </button>
 
       <div className="flex items-start justify-between">
@@ -138,23 +146,22 @@ export default function CustomerDetails() {
         </Button>
       </div>
 
-      {/* Balance cards */}
       <div className="grid grid-cols-3 gap-2">
         <Card className="shadow-card">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Total Debt</p>
+            <p className="text-xs text-muted-foreground">{t('customers.totalDebt')}</p>
             <p className="text-lg font-bold text-destructive">{formatKES(balance.totalDebt)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Paid</p>
+            <p className="text-xs text-muted-foreground">{t('customers.paid')}</p>
             <p className="text-lg font-bold text-success">{formatKES(balance.totalPaid)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
           <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground">Balance</p>
+            <p className="text-xs text-muted-foreground">{t('customers.balance')}</p>
             <p className={`text-lg font-bold ${balance.balance > 0 ? 'text-destructive' : 'text-success'}`}>
               {formatKES(balance.balance)}
             </p>
@@ -162,22 +169,21 @@ export default function CustomerDetails() {
         </Card>
       </div>
 
-      {/* Overdue alert */}
       {overdueDebts.length > 0 && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle size={16} className="text-destructive" />
-              <p className="text-sm font-semibold text-destructive">{overdueDebts.length} Overdue Debt{overdueDebts.length > 1 ? 's' : ''}</p>
+              <p className="text-sm font-semibold text-destructive">{t('customers.overdueAlert', { count: overdueDebts.length })}</p>
             </div>
             {overdueDebts.map(tx => (
               <div key={tx.id} className="flex items-center justify-between py-1">
                 <div>
                   <p className="text-sm text-card-foreground">{formatKES(tx.amount)}</p>
-                  <p className="text-xs text-muted-foreground">Due: {format(new Date(tx.due_date!), 'MMM d, yyyy')}</p>
+                  <p className="text-xs text-muted-foreground">{t('dashboard.due')}: {format(new Date(tx.due_date!), 'MMM d, yyyy')}</p>
                 </div>
                 <Button size="sm" variant="outline" className="gap-1 text-xs border-[hsl(142,70%,45%)] text-[hsl(142,70%,45%)]" onClick={() => handleSendReminder(tx)}>
-                  <MessageCircle size={14} /> Remind
+                  <MessageCircle size={14} /> {t('dashboard.remind')}
                 </Button>
               </div>
             ))}
@@ -185,83 +191,80 @@ export default function CustomerDetails() {
         </Card>
       )}
 
-      {/* Actions */}
       <div className="flex gap-2">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex-1 gradient-primary border-0 gap-1" onClick={() => setTxType('debt')}>
-              <Plus size={16} /> Add Debt
+              <Plus size={16} /> {t('customers.addDebt')}
             </Button>
           </DialogTrigger>
           <DialogTrigger asChild>
             <Button variant="outline" className="flex-1 gap-1 border-primary text-primary" onClick={() => setTxType('payment')}>
-              <Minus size={16} /> Record Payment
+              <Minus size={16} /> {t('customers.recordPayment')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{txType === 'debt' ? 'Add Debt' : 'Record Payment'}</DialogTitle>
+              <DialogTitle>{txType === 'debt' ? t('customers.addDebt') : t('customers.recordPayment')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleAddTx} className="space-y-4">
-              <Input type="number" placeholder="Amount (KES)" value={amount} onChange={e => setAmount(e.target.value)} required min="1" />
-              <Input placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
+              <Input type="number" placeholder={t('customers.amountKes')} value={amount} onChange={e => setAmount(e.target.value)} required min="1" />
+              <Input placeholder={t('customers.descOptional')} value={description} onChange={e => setDescription(e.target.value)} />
               {txType === 'debt' && (
                 <div>
                   <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                    <Clock size={14} /> Payment due date (optional)
+                    <Clock size={14} /> {t('customers.dueDateOptional')}
                   </label>
                   <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
                 </div>
               )}
               <Button type="submit" className="w-full gradient-primary border-0" disabled={addTransaction.isPending}>
-                {addTransaction.isPending ? 'Saving...' : txType === 'debt' ? 'Add Debt' : 'Record Payment'}
+                {addTransaction.isPending ? t('common.saving') : (txType === 'debt' ? t('customers.addDebt') : t('customers.recordPayment'))}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Edit Transaction Dialog */}
       <Dialog open={!!editTx} onOpenChange={(open) => !open && setEditTx(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Transaction</DialogTitle>
+            <DialogTitle>{t('customers.editTx')}</DialogTitle>
           </DialogHeader>
           {editTx && (
             <form onSubmit={handleEditTx} className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Amount (KES)</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('customers.amountKes')}</label>
                 <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} required min="1" />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Description</label>
-                <Input placeholder="Description (optional)" value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+                <label className="text-sm text-muted-foreground mb-1 block">{t('common.description')}</label>
+                <Input placeholder={t('customers.descOptional')} value={editDescription} onChange={e => setEditDescription(e.target.value)} />
               </div>
               {editTx.type === 'debt' && (
                 <div>
                   <label className="text-sm text-muted-foreground flex items-center gap-1 mb-1">
-                    <Clock size={14} /> Due date
+                    <Clock size={14} /> {t('customers.dueDate')}
                   </label>
                   <Input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} />
                 </div>
               )}
               <Button type="submit" className="w-full gradient-primary border-0" disabled={updateTx.isPending}>
-                {updateTx.isPending ? 'Saving...' : 'Update Transaction'}
+                {updateTx.isPending ? t('common.saving') : t('common.update')}
               </Button>
             </form>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Transaction History */}
       <Card className="shadow-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Transaction History</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{t('customers.transactionHistory')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {txLoading && <div className="h-20 bg-muted rounded animate-pulse" />}
           {!txLoading && (transactions?.length || 0) === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t('customers.noTransactions')}</p>
           )}
           {transactions?.map(tx => (
             <div key={tx.id} className="flex items-center justify-between py-1">
@@ -271,7 +274,7 @@ export default function CustomerDetails() {
                   {format(new Date(tx.date), 'MMM d, yyyy')}
                   {tx.type === 'debt' && tx.due_date && (
                     <span className={isPast(parseISO(tx.due_date)) ? ' text-destructive' : ''}>
-                      {' '}· Due: {format(new Date(tx.due_date), 'MMM d')}
+                      {' '}· {t('dashboard.due')}: {format(new Date(tx.due_date), 'MMM d')}
                     </span>
                   )}
                 </p>
@@ -290,9 +293,9 @@ export default function CustomerDetails() {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm('Delete this transaction?')) {
+                    if (confirm(t('customers.deleteTxConfirm'))) {
                       deleteTx.mutate(tx.id, {
-                        onSuccess: () => toast.success('Transaction deleted'),
+                        onSuccess: () => toast.success(t('customers.txDeleted')),
                         onError: (err: any) => toast.error(err.message),
                       });
                     }

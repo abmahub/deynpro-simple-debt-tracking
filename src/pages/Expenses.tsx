@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExpenses, useAddExpense, useUpdateExpense, useDeleteExpense, EXPENSE_CATEGORIES } from '@/hooks/useExpenses';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function Expenses() {
+  const { t } = useTranslation();
   const { data: expenses, isLoading } = useExpenses();
   const addExpense = useAddExpense();
   const updateExpense = useUpdateExpense();
@@ -47,7 +49,7 @@ export default function Expenses() {
     e.preventDefault();
     try {
       await addExpense.mutateAsync({ title, amount: Number(amount), category, description: description || undefined, date: date || undefined });
-      toast.success('Expense added!');
+      toast.success(t('expenses.added'));
       resetForm();
       setAddOpen(false);
     } catch (err: any) { toast.error(err.message); }
@@ -56,15 +58,15 @@ export default function Expenses() {
   const handleUpdate = async (id: string) => {
     try {
       await updateExpense.mutateAsync({ id, title, amount: Number(amount), category, description: description || undefined });
-      toast.success('Expense updated!');
+      toast.success(t('expenses.updated'));
       setEditingId(null);
       resetForm();
     } catch (err: any) { toast.error(err.message); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this expense?')) return;
-    try { await deleteExpense.mutateAsync(id); toast.success('Expense deleted'); } catch (err: any) { toast.error(err.message); }
+    if (!confirm(t('expenses.deleteConfirm'))) return;
+    try { await deleteExpense.mutateAsync(id); toast.success(t('expenses.deleted')); } catch (err: any) { toast.error(err.message); }
   };
 
   const startEdit = (expense: any) => {
@@ -76,29 +78,29 @@ export default function Expenses() {
     <div className="space-y-4 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Expenses</h1>
-          <p className="text-sm text-muted-foreground">Total: KES {totalExpenses.toLocaleString()}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('expenses.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('expenses.totalLabel', { amount: totalExpenses.toLocaleString() })}</p>
         </div>
         <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="gradient-primary border-0 gap-1"><Plus size={16} /> Add</Button>
+            <Button className="gradient-primary border-0 gap-1"><Plus size={16} /> {t('common.add')}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t('expenses.addExpense')}</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
-              <Input placeholder="Title *" value={title} onChange={e => setTitle(e.target.value)} required />
-              <Input placeholder="Amount *" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
+              <Input placeholder={t('expenses.titleField')} value={title} onChange={e => setTitle(e.target.value)} required />
+              <Input placeholder={t('expenses.amountField')} type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
               </Select>
               <div>
-                <label className="text-xs text-muted-foreground">Date</label>
+                <label className="text-xs text-muted-foreground">{t('common.date')}</label>
                 <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
               </div>
-              <Input placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
+              <Input placeholder={t('common.description')} value={description} onChange={e => setDescription(e.target.value)} />
               <Button type="submit" className="w-full gradient-primary border-0" disabled={addExpense.isPending}>
-                {addExpense.isPending ? 'Adding...' : 'Add Expense'}
+                {addExpense.isPending ? t('common.saving') : t('expenses.addExpense')}
               </Button>
             </form>
           </DialogContent>
@@ -106,8 +108,8 @@ export default function Expenses() {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search expenses..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder={t('expenses.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-9" />
       </div>
 
       {isLoading && <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />)}</div>}
@@ -126,8 +128,8 @@ export default function Expenses() {
                   </Select>
                   <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" />
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => { setEditingId(null); resetForm(); }} className="flex-1">Cancel</Button>
-                    <Button type="submit" className="flex-1 gradient-primary border-0" disabled={updateExpense.isPending}>Update</Button>
+                    <Button type="button" variant="outline" onClick={() => { setEditingId(null); resetForm(); }} className="flex-1">{t('common.cancel')}</Button>
+                    <Button type="submit" className="flex-1 gradient-primary border-0" disabled={updateExpense.isPending}>{t('common.update')}</Button>
                   </div>
                 </form>
               ) : (
@@ -155,7 +157,7 @@ export default function Expenses() {
         ))}
         {!isLoading && filtered.length === 0 && (
           <p className="text-center text-muted-foreground py-8">
-            {search ? 'No expenses found' : 'No expenses yet. Add your first one!'}
+            {search ? t('expenses.noResults') : t('expenses.empty')}
           </p>
         )}
       </div>

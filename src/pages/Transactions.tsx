@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useAllTransactions } from '@/hooks/useCustomers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,31 +12,32 @@ function formatKES(amount: number) {
 }
 
 export default function Transactions() {
+  const { t } = useTranslation();
   const { data: transactions, isLoading } = useAllTransactions();
 
   const handleExport = () => {
     const rows = (transactions || []).map(tx => ({
-      Date: format(new Date(tx.date), 'yyyy-MM-dd HH:mm'),
-      Customer: tx.customers?.name || '',
-      Phone: tx.customers?.phone || '',
-      Type: tx.type,
-      Amount: tx.amount,
-      Description: tx.description || '',
-      'Due Date': tx.due_date || '',
+      [t('common.date')]: format(new Date(tx.date), 'yyyy-MM-dd HH:mm'),
+      [t('common.customer')]: tx.customers?.name || '',
+      [t('common.phone')]: tx.customers?.phone || '',
+      [t('common.status')]: tx.type,
+      [t('common.amount')]: tx.amount,
+      [t('common.description')]: tx.description || '',
+      [t('customers.dueDate')]: tx.due_date || '',
     }));
-    exportToExcel('DeynPro_Transactions', [{ name: 'Transactions', rows }]);
-    toast.success('Excel downloaded');
+    exportToExcel('DeynPro_Transactions', [{ name: t('transactions.title'), rows }]);
+    toast.success(t('common.excelDownloaded'));
   };
 
   return (
     <div className="space-y-4 pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
-          <p className="text-sm text-muted-foreground">All debts and payments</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('transactions.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('transactions.subtitle')}</p>
         </div>
         <Button variant="outline" className="gap-1" onClick={handleExport} disabled={!transactions?.length}>
-          <FileSpreadsheet size={16} /> Excel
+          <FileSpreadsheet size={16} /> {t('common.excel')}
         </Button>
       </div>
 
@@ -62,7 +64,7 @@ export default function Transactions() {
           </Card>
         ))}
         {!isLoading && (transactions?.length || 0) === 0 && (
-          <p className="text-center text-muted-foreground py-8">No transactions yet</p>
+          <p className="text-center text-muted-foreground py-8">{t('transactions.empty')}</p>
         )}
       </div>
     </div>
