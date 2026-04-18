@@ -26,9 +26,11 @@ export default function AdminDashboard() {
   const deleteUser = useDeleteUser();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
+
+  const USERNAME_DOMAIN = 'deynpro.local';
 
   const handleRoleChange = async (userId: string, role: 'admin' | 'user') => {
     try {
@@ -41,13 +43,25 @@ export default function AdminDashboard() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    const username = newUsername.trim().toLowerCase();
+    if (!/^[a-z0-9_.-]{3,32}$/.test(username)) {
+      toast.error('Username must be 3-32 chars: letters, numbers, . _ -');
+      return;
+    }
     try {
-      await createUser.mutateAsync({ email: newEmail, password: newPassword, role: newRole });
+      const email = `${username}@${USERNAME_DOMAIN}`;
+      await createUser.mutateAsync({ email, password: newPassword, role: newRole });
       toast.success('User created successfully!');
-      setNewEmail(''); setNewPassword(''); setNewRole('user'); setAddDialogOpen(false);
+      setNewUsername(''); setNewPassword(''); setNewRole('user'); setAddDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message);
     }
+  };
+
+  const displayName = (email?: string | null) => {
+    if (!email) return 'Unknown';
+    const [name, domain] = email.split('@');
+    return domain === USERNAME_DOMAIN ? name : email;
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -127,10 +141,13 @@ export default function AdminDashboard() {
                 </DialogHeader>
                 <form onSubmit={handleAddUser} className="space-y-4">
                   <Input
-                    type="email"
-                    placeholder="Email address"
-                    value={newEmail}
-                    onChange={e => setNewEmail(e.target.value)}
+                    type="text"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="Username (e.g. john)"
+                    value={newUsername}
+                    onChange={e => setNewUsername(e.target.value)}
                     required
                   />
                   <Input
@@ -163,7 +180,7 @@ export default function AdminDashboard() {
             <Card key={ur.id} className="shadow-card">
               <CardContent className="p-4 flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-card-foreground truncate">{ur.email || 'Unknown'}</p>
+                  <p className="text-sm font-medium text-card-foreground truncate">{displayName(ur.email)}</p>
                   <p className="text-xs text-muted-foreground">{format(new Date(ur.created_at), 'MMM d, yyyy')}</p>
                 </div>
                 <Select
@@ -188,7 +205,7 @@ export default function AdminDashboard() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete User?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete <strong>{ur.email}</strong> and all their data. This action cannot be undone.
+                        This will permanently delete <strong>{displayName(ur.email)}</strong> and all their data. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
