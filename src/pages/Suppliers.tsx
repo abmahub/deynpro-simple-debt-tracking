@@ -4,30 +4,30 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Search, Pencil, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Phone, FileText, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 function SupplierForm({ supplier, onSubmit, isPending, onCancel }: {
   supplier?: Supplier;
-  onSubmit: (data: { name: string; phone?: string; email?: string; address?: string }) => void;
+  onSubmit: (data: { name: string; phone?: string; description?: string; address?: string }) => void;
   isPending: boolean;
   onCancel?: () => void;
 }) {
   const [name, setName] = useState(supplier?.name || '');
   const [phone, setPhone] = useState(supplier?.phone || '');
-  const [email, setEmail] = useState(supplier?.email || '');
+  const [description, setDescription] = useState(supplier?.description || '');
   const [address, setAddress] = useState(supplier?.address || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, phone: phone || undefined, email: email || undefined, address: address || undefined });
+    onSubmit({ name, phone: phone || undefined, description: description || undefined, address: address || undefined });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input placeholder="Supplier name *" value={name} onChange={e => setName(e.target.value)} required />
       <Input placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} />
-      <Input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+      <Input placeholder="Description (e.g. Wholesale rice)" value={description} onChange={e => setDescription(e.target.value)} />
       <Input placeholder="Address" value={address} onChange={e => setAddress(e.target.value)} />
       <div className="flex gap-2">
         {onCancel && <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>}
@@ -53,7 +53,7 @@ export default function Suppliers() {
     (s.phone || '').includes(search)
   ) || [];
 
-  const handleAdd = async (data: { name: string; phone?: string; email?: string; address?: string }) => {
+  const handleAdd = async (data: { name: string; phone?: string; description?: string; address?: string }) => {
     try {
       await addSupplier.mutateAsync(data);
       toast.success('Supplier added!');
@@ -61,7 +61,7 @@ export default function Suppliers() {
     } catch (err: any) { toast.error(err.message); }
   };
 
-  const handleUpdate = async (id: string, data: { name: string; phone?: string; email?: string; address?: string }) => {
+  const handleUpdate = async (id: string, data: { name: string; phone?: string; description?: string; address?: string }) => {
     try {
       await updateSupplier.mutateAsync({ id, ...data });
       toast.success('Supplier updated!');
@@ -118,7 +118,7 @@ export default function Suppliers() {
                   <div className="space-y-1">
                     <p className="font-medium text-card-foreground">{supplier.name}</p>
                     {supplier.phone && <p className="text-sm text-muted-foreground flex items-center gap-1"><Phone size={12} /> {supplier.phone}</p>}
-                    {supplier.email && <p className="text-sm text-muted-foreground flex items-center gap-1"><Mail size={12} /> {supplier.email}</p>}
+                    {supplier.description && <p className="text-sm text-muted-foreground flex items-center gap-1"><FileText size={12} /> {supplier.description}</p>}
                     {supplier.address && <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin size={12} /> {supplier.address}</p>}
                   </div>
                   <div className="flex gap-1">

@@ -9,6 +9,7 @@ export interface Expense {
   category: string;
   date: string;
   description: string | null;
+  supplier_id: string | null;
   created_at: string;
 }
 
@@ -28,7 +29,7 @@ export function useExpenses() {
 export function useAddExpense() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (expense: { title: string; amount: number; category: string; description?: string; date?: string }) => {
+    mutationFn: async (expense: { title: string; amount: number; category: string; description?: string; date?: string; supplier_id?: string | null }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { data, error } = await supabase.from('expenses').insert({ ...expense, user_id: user.id }).select().single();
