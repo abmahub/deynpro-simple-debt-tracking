@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Shield, Users, ArrowLeftRight, TrendingDown, TrendingUp, Crown, UserCheck, Plus, Trash2 } from 'lucide-react';
-import { useAdminStats, useAllUserRoles, useUpdateRole, useCreateUser, useDeleteUser, useAllCustomersAdmin, useAllTransactionsAdmin } from '@/hooks/useAdmin';
+import { Shield, Users, ArrowLeftRight, TrendingDown, TrendingUp, Crown, UserCheck, Plus, Trash2, Ban, CheckCircle2 } from 'lucide-react';
+import { useAdminStats, useAllUserRoles, useUpdateRole, useCreateUser, useDeleteUser, useAllCustomersAdmin, useAllTransactionsAdmin, useSetUserBlocked } from '@/hooks/useAdmin';
+import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
   const updateRole = useUpdateRole();
   const createUser = useCreateUser();
   const deleteUser = useDeleteUser();
+  const setBlocked = useSetUserBlocked();
+  const { user: currentUser } = useAuth();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -68,6 +71,15 @@ export default function AdminDashboard() {
     try {
       await deleteUser.mutateAsync(userId);
       toast.success('User deleted');
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleToggleBlock = async (userId: string, blocked: boolean) => {
+    try {
+      await setBlocked.mutateAsync({ userId, blocked });
+      toast.success(blocked ? 'User blocked and signed out' : 'User unblocked');
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -180,7 +192,10 @@ export default function AdminDashboard() {
             <Card key={ur.id} className="shadow-card">
               <CardContent className="p-4 flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-card-foreground truncate">{displayName(ur.email)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-card-foreground truncate">{displayName(ur.email)}</p>
+                    {ur.blocked && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Blocked</Badge>}
+                  </div>
                   <p className="text-xs text-muted-foreground">{format(new Date(ur.created_at), 'MMM d, yyyy')}</p>
                 </div>
                 <Select
@@ -195,6 +210,18 @@ export default function AdminDashboard() {
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                {ur.user_id !== currentUser?.id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={ur.blocked ? 'text-success hover:text-success shrink-0' : 'text-warning hover:text-warning shrink-0'}
+                    onClick={() => handleToggleBlock(ur.user_id, !ur.blocked)}
+                    disabled={setBlocked.isPending}
+                    title={ur.blocked ? 'Unblock user' : 'Block user'}
+                  >
+                    {ur.blocked ? <CheckCircle2 size={16} /> : <Ban size={16} />}
+                  </Button>
+                )}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive shrink-0">
