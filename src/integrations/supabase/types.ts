@@ -38,6 +38,30 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -46,6 +70,7 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          supplier_id: string | null
           title: string
           user_id: string
         }
@@ -56,6 +81,7 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          supplier_id?: string | null
           title: string
           user_id: string
         }
@@ -66,10 +92,19 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          supplier_id?: string | null
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -213,6 +248,39 @@ export type Database = {
           },
         ]
       }
+      shop_settings: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          phone: string | null
+          shop_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_alerts: {
         Row: {
           alert_type: string
@@ -255,6 +323,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          description: string | null
           email: string | null
           id: string
           name: string
@@ -264,6 +333,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           name: string
@@ -273,6 +343,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          description?: string | null
           email?: string | null
           id?: string
           name?: string
