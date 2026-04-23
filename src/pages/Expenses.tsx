@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExpenses, useAddExpense, useUpdateExpense, useDeleteExpense, EXPENSE_CATEGORIES } from '@/hooks/useExpenses';
+import { useExpenseCategories } from '@/hooks/useExpenseCategories';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Search, Pencil, Trash2, Receipt } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Receipt, Truck, Settings as SettingsIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -23,6 +26,8 @@ const categoryColors: Record<string, string> = {
 export default function Expenses() {
   const { t } = useTranslation();
   const { data: expenses, isLoading } = useExpenses();
+  const { data: customCategories } = useExpenseCategories();
+  const { data: suppliers } = useSuppliers();
   const addExpense = useAddExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
@@ -36,8 +41,15 @@ export default function Expenses() {
   const [category, setCategory] = useState('other');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
+  const [supplierId, setSupplierId] = useState<string>('none');
 
-  const resetForm = () => { setTitle(''); setAmount(''); setCategory('other'); setDescription(''); setDate(''); };
+  // Merge built-in categories with user-created ones (deduped)
+  const allCategories = Array.from(new Set([
+    ...EXPENSE_CATEGORIES,
+    ...((customCategories || []).map(c => c.name)),
+  ]));
+
+  const resetForm = () => { setTitle(''); setAmount(''); setCategory('other'); setDescription(''); setDate(''); setSupplierId('none'); };
 
   const filtered = (expenses || []).filter(e =>
     e.title.toLowerCase().includes(search.toLowerCase()) || e.category.includes(search.toLowerCase())
@@ -48,7 +60,14 @@ export default function Expenses() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addExpense.mutateAsync({ title, amount: Number(amount), category, description: description || undefined, date: date || undefined });
+      await addExpense.mutateAsync({
+        title,
+        amount: Number(amount),
+        category,
+        description: description || undefined,
+        date: date || undefined,
+        supplier_id: supplierId === 'none' ? null : supplierId,
+      });
       toast.success(t('expenses.added'));
       resetForm();
       setAddOpen(false);
@@ -57,7 +76,11 @@ export default function Expenses() {
 
   const handleUpdate = async (id: string) => {
     try {
-      await updateExpense.mutateAsync({ id, title, amount: Number(amount), category, description: description || undefined });
+      await updateExpense.mutateAsync({
+        id, title, amount: Number(amount), category,
+        description: description || undefined,
+        supplier_id: supplierId === 'none' ? null : supplierId,
+      });
       toast.success(t('expenses.updated'));
       setEditingId(null);
       resetForm();
@@ -71,7 +94,9 @@ export default function Expenses() {
 
   const startEdit = (expense: any) => {
     setTitle(expense.title); setAmount(String(expense.amount)); setCategory(expense.category);
-    setDescription(expense.description || ''); setEditingId(expense.id);
+    setDescription(expense.description || '');
+    setSupplierId(expense.supplier_id || 'none');
+    setEditingId(expense.id);
   };
 
   return (
