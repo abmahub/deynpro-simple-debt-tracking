@@ -71,6 +71,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "set_blocked") {
+      const { userId, blocked } = body;
+      if (!userId) throw new Error("userId required");
+      if (userId === user.id) throw new Error("Cannot block yourself");
+
+      // Update blocked flag
+      const { error: updErr } = await adminClient
+        .from("user_roles")
+        .update({ blocked: !!blocked })
+        .eq("user_id", userId);
+      if (updErr) throw updErr;
+
+      // If blocking, sign the user out of all sessions immediately
+      if (blocked) {
+        await adminClient.auth.admin.signOut(userId, "global").catch(() => {});
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "list") {
       const { data: { users }, error } = await adminClient.auth.admin.listUsers();
       if (error) throw error;

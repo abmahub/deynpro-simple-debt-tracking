@@ -41,12 +41,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Auto sign-out if the current user is blocked
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    const checkBlocked = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('blocked')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (!cancelled && data?.blocked) {
+        await supabase.auth.signOut();
+      }
+    };
+    checkBlocked();
+    const interval = setInterval(checkBlocked, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [session?.user?.id]);
+
   const signIn = async (identifier: string, password: string) => {
     const trimmed = identifier.trim();
     // If user typed a real email (contains @), use it directly. Otherwise treat as username.
     const email = trimmed.includes('@') ? trimmed.toLowerCase() : usernameToEmail(trimmed);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+
+    // Block check post-login: prevent blocked users from staying signed in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: roleRow } = await supabase
+        .from('user_roles')
+        .select('blocked')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (roleRow?.blocked) {
+        await supabase.auth.signOut();
+        throw new Error('Your account has been blocked by the administrator.');
+      }
+    }
   };
 
   const signOut = async () => {

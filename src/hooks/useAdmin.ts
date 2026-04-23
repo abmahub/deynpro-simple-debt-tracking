@@ -7,6 +7,7 @@ export interface UserWithRole {
   created_at: string;
   id: string;
   email?: string;
+  blocked?: boolean;
 }
 
 export function useAllUserRoles() {
@@ -112,6 +113,23 @@ export function useDeleteUser() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-user-roles'] });
       qc.invalidateQueries({ queryKey: ['admin-stats'] });
+    },
+  });
+}
+
+export function useSetUserBlocked() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, blocked }: { userId: string; blocked: boolean }) => {
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'set_blocked', userId, blocked },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-user-roles'] });
     },
   });
 }
