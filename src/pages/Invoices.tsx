@@ -33,10 +33,16 @@ export default function Invoices() {
 
   const now = new Date();
 
-  // Consolidate sales: same customer + same day = 1 invoice
+  // Each sale is its own invoice with a unique invoice number
   const invoices = useMemo(() => {
     if (!sales) return [];
-    return consolidateInvoices(sales);
+    // sales arrive sorted DESC by date; assign invoice numbers
+    const total = sales.length;
+    return sales.map((sale: any, idx: number) => ({
+      ...sale,
+      invoice_number: buildInvoiceNumber(sale, idx, total),
+      all_items: sale.sale_items || [],
+    }));
   }, [sales]);
 
   // Group invoices by period
