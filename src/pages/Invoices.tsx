@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useSales } from '@/hooks/useSales';
+import { useShopSettings } from '@/hooks/useShopSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui/table';
@@ -39,6 +40,7 @@ function consolidateInvoices(sales: any[]) {
 
 export default function Invoices() {
   const { data: sales } = useSales();
+  const { data: shop } = useShopSettings();
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -101,6 +103,9 @@ export default function Invoices() {
     if (!printRef.current) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+    const shopName = shop?.shop_name || 'DeynPro';
+    const shopPhone = shop?.phone || '';
+    const shopAddress = shop?.address || '';
     printWindow.document.write(`
       <html>
         <head>
@@ -122,7 +127,7 @@ export default function Invoices() {
         </head>
         <body>
           ${printRef.current.innerHTML}
-          <div class="footer">Thank you for your business! — DeynPro</div>
+          <div class="footer">Thank you for your business! — ${shopName}</div>
         </body>
       </html>
     `);
@@ -294,7 +299,9 @@ export default function Invoices() {
             <div className="space-y-4">
               <div ref={printRef}>
                 <div className="header" style={{ textAlign: 'center', marginBottom: 16 }}>
-                  <h1 style={{ margin: 0, fontSize: 20, fontWeight: 'bold' }}>DeynPro</h1>
+                  <h1 style={{ margin: 0, fontSize: 20, fontWeight: 'bold' }}>{shop?.shop_name || 'DeynPro'}</h1>
+                  {shop?.phone && <p style={{ margin: '2px 0', color: '#666', fontSize: 12 }}>📞 {shop.phone}</p>}
+                  {shop?.address && <p style={{ margin: '2px 0', color: '#666', fontSize: 12 }}>📍 {shop.address}</p>}
                   <p style={{ margin: '4px 0', color: '#666', fontSize: 13 }}>Invoice</p>
                 </div>
 

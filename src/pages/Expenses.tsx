@@ -115,9 +115,21 @@ export default function Expenses() {
             <form onSubmit={handleAdd} className="space-y-3">
               <Input placeholder={t('expenses.titleField')} value={title} onChange={e => setTitle(e.target.value)} required />
               <Input placeholder={t('expenses.amountField')} type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+              <div className="space-y-1">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                  <SelectContent>{allCategories.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+                </Select>
+                <Link to="/settings" className="text-[11px] text-primary inline-flex items-center gap-1 hover:underline">
+                  <SettingsIcon size={10} /> Manage categories
+                </Link>
+              </div>
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger><SelectValue placeholder="Supplier (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No supplier —</SelectItem>
+                  {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
               </Select>
               <div>
                 <label className="text-xs text-muted-foreground">{t('common.date')}</label>
@@ -149,7 +161,14 @@ export default function Expenses() {
                   <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} required />
                   <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{EXPENSE_CATEGORIES.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+                    <SelectContent>{allCategories.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Select value={supplierId} onValueChange={setSupplierId}>
+                    <SelectTrigger><SelectValue placeholder="Supplier (optional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— No supplier —</SelectItem>
+                      {(suppliers || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                   <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" />
                   <div className="flex gap-2">
@@ -170,6 +189,11 @@ export default function Expenses() {
                     </div>
                     <p className="text-xs text-muted-foreground">{format(new Date(expense.date), 'MMM d, yyyy')}</p>
                     {expense.description && <p className="text-xs text-muted-foreground">{expense.description}</p>}
+                    {expense.supplier_id && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Truck size={10} /> {(suppliers || []).find(s => s.id === expense.supplier_id)?.name || 'Supplier'}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => startEdit(expense)}><Pencil size={14} /></Button>
