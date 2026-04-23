@@ -132,7 +132,7 @@ export default function Invoices() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
-          <p className="text-sm text-muted-foreground">Same-day sales per customer are combined</p>
+        <p className="text-sm text-muted-foreground">Each sale gets its own invoice</p>
         </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
           <SelectTrigger className="w-[140px]">
@@ -234,6 +234,7 @@ export default function Invoices() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Invoice #</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Items</TableHead>
                         <TableHead>Payment</TableHead>
@@ -244,11 +245,11 @@ export default function Invoices() {
                     <TableBody>
                       {groupInvs.map((inv: any, idx: number) => (
                         <TableRow key={inv.id + idx}>
+                          <TableCell className="text-xs font-mono text-muted-foreground">
+                            {inv.invoice_number}
+                          </TableCell>
                           <TableCell className="text-sm">
                             {inv.customers?.name || <span className="text-muted-foreground">Walk-in</span>}
-                            {inv.consolidated_sales.length > 1 && (
-                              <span className="text-xs text-muted-foreground ml-1">({inv.consolidated_sales.length} sales)</span>
-                            )}
                           </TableCell>
                           <TableCell className="text-sm">
                             {inv.all_items?.length || 0} item{(inv.all_items?.length || 0) !== 1 ? 's' : ''}
@@ -283,7 +284,7 @@ export default function Invoices() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText size={18} />
-              Invoice — {selectedInvoice?.customers?.name || 'Walk-in'}
+              {selectedInvoice?.invoice_number || 'Invoice'}
             </DialogTitle>
           </DialogHeader>
 
@@ -299,8 +300,12 @@ export default function Invoices() {
 
                 <div className="details text-sm space-y-1">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Invoice #:</span>
+                    <span className="font-mono">{selectedInvoice.invoice_number}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Date:</span>
-                    <span>{format(new Date(selectedInvoice.date), 'dd MMM yyyy')}</span>
+                    <span>{format(new Date(selectedInvoice.date), 'dd MMM yyyy, HH:mm')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Customer:</span>
@@ -310,12 +315,6 @@ export default function Invoices() {
                     <span className="text-muted-foreground">Payment:</span>
                     <span>{paymentLabel(selectedInvoice.payment_method)}</span>
                   </div>
-                  {selectedInvoice.consolidated_sales.length > 1 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sales combined:</span>
-                      <span>{selectedInvoice.consolidated_sales.length}</span>
-                    </div>
-                  )}
                 </div>
 
                 <Separator className="my-3" />
