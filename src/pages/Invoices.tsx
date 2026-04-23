@@ -15,27 +15,13 @@ function formatKES(amount: number) {
   return `KES ${amount.toLocaleString()}`;
 }
 
-// Consolidate same-day sales for same customer into one invoice
-function consolidateInvoices(sales: any[]) {
-  const map: Record<string, any> = {};
-  sales.forEach((sale: any) => {
-    const day = format(new Date(sale.date), 'yyyy-MM-dd');
-    const custKey = sale.customer_id || `walkin-${sale.id}`;
-    const key = `${day}_${custKey}`;
-    if (!map[key]) {
-      map[key] = {
-        ...sale,
-        consolidated_sales: [sale],
-        all_items: [...(sale.sale_items || [])],
-        total_amount: sale.total_amount,
-      };
-    } else {
-      map[key].consolidated_sales.push(sale);
-      map[key].all_items.push(...(sale.sale_items || []));
-      map[key].total_amount += sale.total_amount;
-    }
-  });
-  return Object.values(map);
+// Each sale = its own invoice. Generate a short readable invoice number.
+function buildInvoiceNumber(sale: any, index: number, total: number) {
+  const d = new Date(sale.date);
+  const datePart = format(d, 'yyyyMMdd');
+  // Sequential number based on reverse-sorted index (oldest = 1)
+  const seq = String(total - index).padStart(4, '0');
+  return `INV-${datePart}-${seq}`;
 }
 
 export default function Invoices() {

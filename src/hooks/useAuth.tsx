@@ -45,19 +45,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session?.user) return;
     let cancelled = false;
+    const userId = session.user.id;
     const checkBlocked = async () => {
       const { data } = await supabase
         .from('user_roles')
         .select('blocked')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userId)
         .maybeSingle();
       if (!cancelled && data?.blocked) {
         await supabase.auth.signOut();
       }
     };
     checkBlocked();
-    const interval = setInterval(checkBlocked, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
+    // Poll frequently as a fallback
+    const interval = setInterval(checkBlocked, 5000);
+
+    // Realtime: react instantly when this user's row is updated
+    const channel = supabase
+      .channel(`user-block-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'user_roles', filter: `user_id=eq.${userId}` },
+        (payload: any) => {
+          if (payload.new?.blocked) {
+            supabase.auth.signOut();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [session?.user?.id]);
 
   const signIn = async (identifier: string, password: string) => {
