@@ -7,6 +7,7 @@ export interface Supplier {
   name: string;
   phone: string | null;
   email: string | null;
+  description: string | null;
   address: string | null;
   created_at: string;
 }
@@ -25,7 +26,7 @@ export function useSuppliers() {
 export function useAddSupplier() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (supplier: { name: string; phone?: string; email?: string; address?: string }) => {
+    mutationFn: async (supplier: { name: string; phone?: string; description?: string; address?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { data, error } = await supabase.from('suppliers').insert({ ...supplier, user_id: user.id }).select().single();
@@ -39,7 +40,7 @@ export function useAddSupplier() {
 export function useUpdateSupplier() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; name?: string; phone?: string; email?: string; address?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; phone?: string; description?: string; address?: string }) => {
       const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
       if (error) throw error;
     },

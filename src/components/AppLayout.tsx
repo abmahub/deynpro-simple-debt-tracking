@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText, UserCircle2, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, ArrowLeftRight, LogOut, Menu, X, Package, Truck, ShoppingCart, Receipt, Bell, BarChart3, FileText, UserCircle2, Shield, Settings as SettingsIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth, emailToUsername } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useRole';
@@ -30,6 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: '/expenses', icon: Receipt, label: t('nav.expenses') },
     { to: '/invoices', icon: FileText, label: t('nav.invoices') },
     { to: '/reports', icon: BarChart3, label: t('nav.reports') },
+    { to: '/settings', icon: SettingsIcon, label: 'Settings' },
     ...(isAdmin ? [{ to: '/admin', icon: Shield, label: 'Admin Panel' }] : []),
   ];
 
