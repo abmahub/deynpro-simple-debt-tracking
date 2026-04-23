@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface ShopSettings {
   id: string;
@@ -11,10 +12,11 @@ export interface ShopSettings {
 }
 
 export function useShopSettings() {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ['shop_settings'],
+    queryKey: ['shop_settings', user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
       const { data, error } = await supabase
         .from('shop_settings')
