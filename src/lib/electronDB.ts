@@ -42,7 +42,7 @@ export interface ElectronDBApi {
 }
 
 export function isElectron(): boolean {
-  return typeof window !== "undefined" && !!window.electronDB;
+  return typeof window !== "undefined" && !!(window as any).electronDB;
 }
 
 /** Throws in browser environments. Guard with `isElectron()` first. */
@@ -53,7 +53,6 @@ export const electronDB: ElectronDBApi = new Proxy({} as ElectronDBApi, {
         `electronDB.${prop} called outside of Electron. Wrap calls with isElectron().`
       );
     }
-    // @ts-expect-error — proxied to window.electronDB
-    return window.electronDB[prop];
+    return (window as any).electronDB[prop];
   },
 });
