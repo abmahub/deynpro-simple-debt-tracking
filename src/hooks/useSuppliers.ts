@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbInsert, dbUpdate, dbDelete } from '@/lib/data';
 
 export interface Supplier {
   id: string;
@@ -16,9 +16,7 @@ export function useSuppliers() {
   return useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('suppliers').select('*').order('name');
-      if (error) throw error;
-      return data as Supplier[];
+      return await dbSelect<Supplier>('suppliers', { orderBy: { column: 'name' } });
     },
   });
 }
@@ -27,11 +25,7 @@ export function useAddSupplier() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (supplier: { name: string; phone?: string; description?: string; address?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.from('suppliers').insert({ ...supplier, user_id: user.id }).select().single();
-      if (error) throw error;
-      return data;
+      return await dbInsert<Supplier>('suppliers', supplier as any);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppliers'] }),
   });
@@ -41,8 +35,7 @@ export function useUpdateSupplier() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; name?: string; phone?: string; description?: string; address?: string }) => {
-      const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
-      if (error) throw error;
+      await dbUpdate('suppliers', id, updates);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppliers'] }),
   });
@@ -52,8 +45,7 @@ export function useDeleteSupplier() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('suppliers').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('suppliers', id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['suppliers'] }),
   });

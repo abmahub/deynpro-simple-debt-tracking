@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbSelectOne, dbInsert, dbUpdate, dbDelete, attachOne } from '@/lib/data';
 
 export interface Product {
   id: string;
@@ -22,12 +22,9 @@ export function useProducts() {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, suppliers(name)')
-        .order('name');
-      if (error) throw error;
-      return data as (Product & { suppliers: { name: string } | null })[];
+      const products = await dbSelect<Product>('products', { orderBy: { column: 'name' } });
+      return await attachOne(products, 'supplier_id', 'suppliers', 'suppliers', ['name']) as
+        (Product & { suppliers: { name: string } | null })[];
     },
   });
 }
@@ -36,9 +33,10 @@ export function useProduct(id: string) {
   return useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('products').select('*, suppliers(name)').eq('id', id).single();
-      if (error) throw error;
-      return data as Product & { suppliers: { name: string } | null };
+      const p = await dbSelectOne<Product>('products', { id });
+      if (!p) throw new Error('Product not found');
+      const [withRel] = await attachOne([p], 'supplier_id', 'suppliers', 'suppliers', ['name']);
+      return withRel as Product & { suppliers: { name: string } | null };
     },
   });
 }
@@ -47,12 +45,8 @@ export function useLowStockProducts() {
   return useQuery({
     queryKey: ['products-low-stock'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('quantity');
-      if (error) throw error;
-      return (data || []).filter((p: Product) => p.quantity <= p.low_stock_threshold);
+      const data = await dbSelect<Product>('products', { orderBy: { column: 'quantity' } });
+      return data.filter((p) => p.quantity <= p.low_stock_threshold);
     },
   });
 }
@@ -61,11 +55,7 @@ export function useAddProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (product: Omit<Product, 'id' | 'created_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.from('products').insert({ ...product, user_id: user.id }).select().single();
-      if (error) throw error;
-      return data;
+      return await dbInsert<Product>('products', product as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] });
@@ -78,8 +68,7 @@ export function useUpdateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Product> & { id: string }) => {
-      const { error } = await supabase.from('products').update(updates).eq('id', id);
-      if (error) throw error;
+      await dbUpdate('products', id, updates);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] });
@@ -92,8 +81,7 @@ export function useDeleteProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('products', id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] });
