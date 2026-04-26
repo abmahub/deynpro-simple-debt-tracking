@@ -1,6 +1,6 @@
-import { createLovableConfig } from "lovable-agent-playwright-config/config";
+import { createabmaConfig } from "abma-agent-playwright-config/config";
 
-export default createLovableConfig({
+export default createabmaConfig({
   // Add your custom playwright configuration overrides here
   // Example:
   // timeout: 60000,
