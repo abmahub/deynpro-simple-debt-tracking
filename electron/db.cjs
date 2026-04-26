@@ -179,6 +179,27 @@ function migrate() {
     );
   `);
 
+  // Outbox queue: holds local mutations that still need to be pushed to Supabase.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sync_outbox (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      table_name TEXT NOT NULL,
+      op TEXT NOT NULL,             -- 'insert' | 'update' | 'delete'
+      row_id TEXT NOT NULL,
+      payload TEXT NOT NULL,        -- JSON
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_outbox_created ON sync_outbox(created_at);
+
+    -- Per-table sync cursors so pulls only fetch deltas
+    CREATE TABLE IF NOT EXISTS sync_state (
+      table_name TEXT PRIMARY KEY,
+      last_pulled_at TEXT
+    );
+  `);
+
   // Backfill columns for users upgrading from earlier versions of the DB.
   // SQLite ignores ADD COLUMN IF the column already exists only via try/catch.
   const addCol = (table, col, type) => {
