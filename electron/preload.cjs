@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronDB', {
 });
 
 contextBridge.exposeInMainWorld('electronSync', {
+  outboxEnqueue: (table, op, rowId, payload) =>
+    ipcRenderer.invoke('sync:outboxEnqueue', table, op, rowId, payload),
   outboxPeek: (limit) => ipcRenderer.invoke('sync:outboxPeek', limit),
   outboxAck: (id) => ipcRenderer.invoke('sync:outboxAck', id),
   outboxFail: (id, err) => ipcRenderer.invoke('sync:outboxFail', id, err),

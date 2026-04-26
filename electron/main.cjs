@@ -49,6 +49,9 @@ ipcMain.handle('sync:outboxFail', (_e, id, err) => db.outboxFail(id, err));
 ipcMain.handle('sync:getState', (_e, table) => db.getSyncState(table));
 ipcMain.handle('sync:setState', (_e, table, ts) => db.setSyncState(table, ts));
 ipcMain.handle('sync:upsertRemote', (_e, table, row) => db.upsertRemote(table, row));
+ipcMain.handle('sync:outboxEnqueue', (_e, table, op, rowId, payload) =>
+  db.outboxEnqueue(table, op, rowId, payload)
+);
 // NOTE: db:raw is intentionally NOT exposed over IPC.
 // The renderer must only use the typed select/insert/update/remove API,
 // which validates table names against an allow-list in db.cjs.

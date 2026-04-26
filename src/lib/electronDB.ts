@@ -41,6 +41,12 @@ export interface ElectronDBApi {
 }
 
 export interface ElectronSyncApi {
+  outboxEnqueue: (
+    table: TableName,
+    op: "insert" | "update" | "delete",
+    rowId: string,
+    payload: Record<string, unknown>
+  ) => Promise<void>;
   outboxPeek: (limit?: number) => Promise<Array<{
     id: number;
     table_name: TableName;
