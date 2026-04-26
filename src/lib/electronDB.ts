@@ -38,7 +38,6 @@ export interface ElectronDBApi {
   ) => Promise<{ changes: number }>;
   exportAll: () => Promise<{ app: string; version: number; exportedAt: string; data: Record<string, unknown[]> }>;
   importAll: (payload: unknown) => Promise<{ ok: true }>;
-  raw: <T = any>(sql: string, params?: unknown[]) => Promise<T>;
 }
 
 export function isElectron(): boolean {

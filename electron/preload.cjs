@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('electronDB', {
   remove: (table, filters) => ipcRenderer.invoke('db:delete', table, filters),
   exportAll: () => ipcRenderer.invoke('db:exportAll'),
   importAll: (payload) => ipcRenderer.invoke('db:importAll', payload),
-  raw: (sql, params) => ipcRenderer.invoke('db:raw', sql, params),
 });
 
 contextBridge.exposeInMainWorld('electronEnv', {
