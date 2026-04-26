@@ -27,9 +27,12 @@ function migrate() {
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
       phone TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_customers_user ON customers(user_id);
+    CREATE INDEX IF NOT EXISTS idx_customers_updated_at ON customers(updated_at);
 
     CREATE TABLE IF NOT EXISTS suppliers (
       id TEXT PRIMARY KEY,
@@ -39,9 +42,12 @@ function migrate() {
       email TEXT,
       address TEXT,
       description TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_suppliers_user ON suppliers(user_id);
+    CREATE INDEX IF NOT EXISTS idx_suppliers_updated_at ON suppliers(updated_at);
 
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -57,10 +63,13 @@ function migrate() {
       expiry_date TEXT,
       low_stock_threshold INTEGER NOT NULL DEFAULT 5,
       supplier_id TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_products_user ON products(user_id);
     CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
+    CREATE INDEX IF NOT EXISTS idx_products_updated_at ON products(updated_at);
 
     CREATE TABLE IF NOT EXISTS sales (
       id TEXT PRIMARY KEY,
@@ -69,10 +78,13 @@ function migrate() {
       total_amount REAL NOT NULL DEFAULT 0,
       payment_method TEXT NOT NULL DEFAULT 'cash',
       date TEXT NOT NULL DEFAULT (datetime('now')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id);
     CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(date);
+    CREATE INDEX IF NOT EXISTS idx_sales_updated_at ON sales(updated_at);
 
     CREATE TABLE IF NOT EXISTS sale_items (
       id TEXT PRIMARY KEY,
@@ -81,9 +93,12 @@ function migrate() {
       quantity INTEGER NOT NULL DEFAULT 1,
       unit_price REAL NOT NULL,
       subtotal REAL NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
+    CREATE INDEX IF NOT EXISTS idx_sale_items_updated_at ON sale_items(updated_at);
 
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
@@ -94,19 +109,25 @@ function migrate() {
       description TEXT,
       supplier_id TEXT,
       date TEXT NOT NULL DEFAULT (datetime('now')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_expenses_user ON expenses(user_id);
     CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_updated_at ON expenses(updated_at);
 
     CREATE TABLE IF NOT EXISTS expense_categories (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
       color TEXT DEFAULT 'muted',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_exp_cat_user ON expense_categories(user_id);
+    CREATE INDEX IF NOT EXISTS idx_exp_cat_updated_at ON expense_categories(updated_at);
 
     CREATE TABLE IF NOT EXISTS transactions (
       id TEXT PRIMARY KEY,
@@ -116,9 +137,12 @@ function migrate() {
       description TEXT,
       date TEXT NOT NULL DEFAULT (datetime('now')),
       due_date TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_tx_customer ON transactions(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_tx_updated_at ON transactions(updated_at);
 
     CREATE TABLE IF NOT EXISTS shop_settings (
       id TEXT PRIMARY KEY,
@@ -128,7 +152,8 @@ function migrate() {
       address TEXT,
       logo_url TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS stock_alerts (
@@ -138,9 +163,12 @@ function migrate() {
       alert_type TEXT NOT NULL DEFAULT 'low_stock',
       message TEXT NOT NULL,
       is_read INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_alerts_user ON stock_alerts(user_id);
+    CREATE INDEX IF NOT EXISTS idx_alerts_updated_at ON stock_alerts(updated_at);
 
     CREATE TABLE IF NOT EXISTS user_roles (
       id TEXT PRIMARY KEY,
@@ -150,6 +178,17 @@ function migrate() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Backfill columns for users upgrading from earlier versions of the DB.
+  // SQLite ignores ADD COLUMN IF the column already exists only via try/catch.
+  const addCol = (table, col, type) => {
+    try { db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`); } catch (_) { /* exists */ }
+  };
+  for (const t of ['customers','suppliers','products','sales','sale_items','expenses','expense_categories','transactions','stock_alerts']) {
+    addCol(t, 'updated_at', `TEXT NOT NULL DEFAULT (datetime('now'))`);
+    addCol(t, 'deleted_at', 'TEXT');
+  }
+  addCol('shop_settings', 'deleted_at', 'TEXT');
 
   // Auto-deduct stock + low-stock alert via trigger (matches Supabase behavior)
   db.exec(`
@@ -161,6 +200,19 @@ function migrate() {
       WHERE id = NEW.product_id;
     END;
   `);
+
+  // Auto-touch updated_at on every UPDATE so sync sees the latest timestamp.
+  for (const t of ['customers','suppliers','products','sales','sale_items','expenses','expense_categories','transactions','stock_alerts','shop_settings']) {
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS set_updated_at_${t}
+      AFTER UPDATE ON ${t}
+      FOR EACH ROW
+      WHEN NEW.updated_at = OLD.updated_at
+      BEGIN
+        UPDATE ${t} SET updated_at = datetime('now') WHERE id = NEW.id;
+      END;
+    `);
+  }
 }
 
 const ALLOWED_TABLES = new Set([
@@ -208,9 +260,21 @@ function update(table, values, filters) {
 }
 
 function remove(table, filters) {
+  // Soft delete by default — sets deleted_at so sync can propagate the deletion.
+  // Pass { __hard: true } in filters to hard-delete (used by importAll).
   assertTable(table);
+  const hard = filters && filters.__hard === true;
+  if (hard) {
+    const { __hard, ...rest } = filters;
+    const { sql, params } = buildWhere(rest);
+    const info = db.prepare(`DELETE FROM ${table}${sql}`).run(...params);
+    return { changes: info.changes };
+  }
   const { sql, params } = buildWhere(filters);
-  const info = db.prepare(`DELETE FROM ${table}${sql}`).run(...params);
+  const now = new Date().toISOString();
+  const info = db.prepare(
+    `UPDATE ${table} SET deleted_at = ?, updated_at = ?${sql}`
+  ).run(now, now, ...params);
   return { changes: info.changes };
 }
 
@@ -242,10 +306,4 @@ function importAll(payload) {
   return { ok: true };
 }
 
-function raw(sql, params = []) {
-  const stmt = db.prepare(sql);
-  if (stmt.reader) return stmt.all(...params);
-  return stmt.run(...params);
-}
-
-module.exports = { init, select, insert, update, remove, exportAll, importAll, raw };
+module.exports = { init, select, insert, update, remove, exportAll, importAll };
