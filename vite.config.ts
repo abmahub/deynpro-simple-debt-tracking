@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: ({ url }) => url.origin === self.location.origin,
+            urlPattern: ({ sameOrigin }) => sameOrigin,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "app-shell" },
           },
