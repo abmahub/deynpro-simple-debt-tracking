@@ -75,9 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Try Supabase first; if offline, fall back to cached identity (Electron only).
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
+    const timeoutMs = isElectron() ? 3000 : 10000;
+    const sessionPromise = supabase.auth.getSession().then((r) => r.data.session);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    Promise.race([sessionPromise, timeoutPromise])
+      .then((session) => {
         if (session) {
           setSession(session);
           cacheUserIdentity(session.user.id, session.user.email);
