@@ -41,4 +41,6 @@ ipcMain.handle('db:update', (_e, table, values, filters) => db.update(table, val
 ipcMain.handle('db:delete', (_e, table, filters) => db.remove(table, filters));
 ipcMain.handle('db:exportAll', () => db.exportAll());
 ipcMain.handle('db:importAll', (_e, payload) => db.importAll(payload));
-ipcMain.handle('db:raw', (_e, sql, params) => db.raw(sql, params));
+// NOTE: db:raw is intentionally NOT exposed over IPC.
+// The renderer must only use the typed select/insert/update/remove API,
+// which validates table names against an allow-list in db.cjs.
