@@ -40,6 +40,23 @@ export interface ElectronDBApi {
   importAll: (payload: unknown) => Promise<{ ok: true }>;
 }
 
+export interface ElectronSyncApi {
+  outboxPeek: (limit?: number) => Promise<Array<{
+    id: number;
+    table_name: TableName;
+    op: "insert" | "update" | "delete";
+    row_id: string;
+    payload: Record<string, unknown>;
+    attempts: number;
+    created_at: string;
+  }>>;
+  outboxAck: (id: number) => Promise<{ ok: true }>;
+  outboxFail: (id: number, err: string) => Promise<{ ok: true }>;
+  getState: (table: TableName) => Promise<string | null>;
+  setState: (table: TableName, ts: string) => Promise<{ ok: true }>;
+  upsertRemote: (table: TableName, row: Record<string, unknown>) => Promise<{ applied: boolean; reason?: string }>;
+}
+
 export function isElectron(): boolean {
   return typeof window !== "undefined" && !!(window as any).electronDB;
 }
@@ -53,5 +70,14 @@ export const electronDB: ElectronDBApi = new Proxy({} as ElectronDBApi, {
       );
     }
     return (window as any).electronDB[prop];
+  },
+});
+
+export const electronSync: ElectronSyncApi = new Proxy({} as ElectronSyncApi, {
+  get(_t, prop: string) {
+    if (!isElectron()) {
+      throw new Error(`electronSync.${prop} called outside of Electron.`);
+    }
+    return (window as any).electronSync[prop];
   },
 });
