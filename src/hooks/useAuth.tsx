@@ -2,6 +2,13 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
+import { isElectron } from '@/lib/electronDB';
+import {
+  cacheUserIdentity,
+  clearCachedIdentity,
+  getCachedUserId,
+  getCachedEmail,
+} from '@/lib/localAuth';
 
 const USERNAME_DOMAIN = 'deynpro.local';
 
@@ -29,27 +36,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
+  // In Electron, build a synthetic offline session from the cached identity
+  // so the app is usable without internet. Real Supabase session takes over
+  // as soon as the network is back and signIn succeeds.
+  const buildOfflineSession = (): Session | null => {
+    if (!isElectron()) return null;
+    const cachedId = getCachedUserId();
+    if (!cachedId) return null;
+    const email = getCachedEmail() || `${cachedId}@local`;
+    return {
+      access_token: 'offline',
+      refresh_token: 'offline',
+      expires_in: 0,
+      token_type: 'bearer',
+      user: {
+        id: cachedId,
+        email,
+        aud: 'authenticated',
+        app_metadata: {},
+        user_metadata: {},
+        created_at: new Date().toISOString(),
+      } as unknown as User,
+    } as unknown as Session;
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setLoading(false);
+      if (session?.user) {
+        cacheUserIdentity(session.user.id, session.user.email);
+      }
       // Wipe React Query cache on sign-out so previous user's data doesn't leak
       if (event === 'SIGNED_OUT') {
+        clearCachedIdentity();
         queryClient.clear();
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    // Try Supabase first; if offline, fall back to cached identity (Electron only).
+    const timeoutMs = isElectron() ? 3000 : 10000;
+    const sessionPromise = supabase.auth.getSession().then((r) => r.data.session);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    Promise.race([sessionPromise, timeoutPromise])
+      .then((session) => {
+        if (session) {
+          setSession(session);
+          cacheUserIdentity(session.user.id, session.user.email);
+        } else {
+          setSession(buildOfflineSession());
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setSession(buildOfflineSession());
+        setLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Auto sign-out if the current user is blocked
+  // Auto sign-out if the current user is blocked (skip when offline / Electron-cached)
   useEffect(() => {
     if (!session?.user) return;
+    if (session.access_token === 'offline') return;
     let cancelled = false;
     const userId = session.user.id;
     const checkBlocked = async () => {
@@ -91,12 +141,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const trimmed = identifier.trim();
     // If user typed a real email (contains @), use it directly. Otherwise treat as username.
     const email = trimmed.includes('@') ? trimmed.toLowerCase() : usernameToEmail(trimmed);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (err: any) {
+      // Offline fallback (Electron only): if we have a cached identity for the
+      // same email, accept the login locally so the user can keep working.
+      if (isElectron() && getCachedEmail() === email && getCachedUserId()) {
+        setSession(buildOfflineSession());
+        return;
+      }
+      throw err;
+    }
 
     // Block check post-login: prevent blocked users from staying signed in
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      cacheUserIdentity(user.id, user.email);
       const { data: roleRow } = await supabase
         .from('user_roles')
         .select('blocked')

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbInsert, dbDelete } from '@/lib/data';
 
 export interface ExpenseCategory {
   id: string;
@@ -13,12 +13,7 @@ export function useExpenseCategories() {
   return useQuery({
     queryKey: ['expense_categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data as ExpenseCategory[];
+      return await dbSelect<ExpenseCategory>('expense_categories', { orderBy: { column: 'name' } });
     },
   });
 }
@@ -27,15 +22,10 @@ export function useAddExpenseCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { name: string; color?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase
-        .from('expense_categories')
-        .insert({ user_id: user.id, name: input.name.trim().toLowerCase(), color: input.color || 'muted' })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      return await dbInsert<ExpenseCategory>('expense_categories', {
+        name: input.name.trim().toLowerCase(),
+        color: input.color || 'muted',
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expense_categories'] }),
   });
@@ -45,8 +35,7 @@ export function useDeleteExpenseCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('expense_categories').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('expense_categories', id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['expense_categories'] }),
   });

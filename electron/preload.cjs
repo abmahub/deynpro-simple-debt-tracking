@@ -13,6 +13,17 @@ contextBridge.exposeInMainWorld('electronDB', {
   importAll: (payload) => ipcRenderer.invoke('db:importAll', payload),
 });
 
+contextBridge.exposeInMainWorld('electronSync', {
+  outboxEnqueue: (table, op, rowId, payload) =>
+    ipcRenderer.invoke('sync:outboxEnqueue', table, op, rowId, payload),
+  outboxPeek: (limit) => ipcRenderer.invoke('sync:outboxPeek', limit),
+  outboxAck: (id) => ipcRenderer.invoke('sync:outboxAck', id),
+  outboxFail: (id, err) => ipcRenderer.invoke('sync:outboxFail', id, err),
+  getState: (table) => ipcRenderer.invoke('sync:getState', table),
+  setState: (table, ts) => ipcRenderer.invoke('sync:setState', table, ts),
+  upsertRemote: (table, row) => ipcRenderer.invoke('sync:upsertRemote', table, row),
+});
+
 contextBridge.exposeInMainWorld('electronEnv', {
   isElectron: true,
   platform: process.platform,

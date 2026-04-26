@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbInsert, dbUpdate, dbDelete } from '@/lib/data';
 
 export interface Expense {
   id: string;
@@ -19,9 +19,7 @@ export function useExpenses() {
   return useQuery({
     queryKey: ['expenses'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('expenses').select('*').order('date', { ascending: false });
-      if (error) throw error;
-      return data as Expense[];
+      return await dbSelect<Expense>('expenses', { orderBy: { column: 'date', ascending: false } });
     },
   });
 }
@@ -30,11 +28,7 @@ export function useAddExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (expense: { title: string; amount: number; category: string; description?: string; date?: string; supplier_id?: string | null }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.from('expenses').insert({ ...expense, user_id: user.id }).select().single();
-      if (error) throw error;
-      return data;
+      return await dbInsert<Expense>('expenses', expense as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses'] });
@@ -47,8 +41,7 @@ export function useUpdateExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Expense> & { id: string }) => {
-      const { error } = await supabase.from('expenses').update(updates).eq('id', id);
-      if (error) throw error;
+      await dbUpdate('expenses', id, updates);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses'] });
@@ -61,8 +54,7 @@ export function useDeleteExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('expenses').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('expenses', id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses'] });

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbInsert, attachOne, attachMany } from '@/lib/data';
 
 export interface Sale {
   id: string;
@@ -31,12 +31,19 @@ export function useSales() {
   return useQuery({
     queryKey: ['sales'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sales')
-        .select('*, customers(name), sale_items(id, quantity, unit_price, subtotal, products(name))')
-        .order('date', { ascending: false });
-      if (error) throw error;
-      return data;
+      const sales = await dbSelect<Sale>('sales', {
+        orderBy: { column: 'date', ascending: false },
+      });
+      const withCustomers = await attachOne(sales, 'customer_id', 'customers', 'customers', ['name']);
+      const withItems = await attachMany(withCustomers as any[], 'id' as any, 'sale_items', 'sale_id', 'sale_items');
+      // Attach product name onto each sale_item
+      const allItems = (withItems as any[]).flatMap((s) => s.sale_items as any[]);
+      const itemsWithProduct = await attachOne(allItems, 'product_id', 'products', 'products', ['name']);
+      const byId = new Map(itemsWithProduct.map((i: any) => [i.id, i]));
+      return (withItems as any[]).map((s) => ({
+        ...s,
+        sale_items: (s.sale_items as any[]).map((it) => byId.get(it.id) || it),
+      }));
     },
   });
 }
@@ -49,42 +56,37 @@ export function useCreateSale() {
       payment_method: string;
       customer_id?: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       const total_amount = items.reduce((s, i) => s + i.subtotal, 0);
 
-      const { data: sale, error: saleError } = await supabase
-        .from('sales')
-        .insert({ user_id: user.id, total_amount, payment_method, customer_id: customer_id || null })
-        .select()
-        .single();
-      if (saleError) throw saleError;
+      // 1) Create the sale row (adapter handles user_id + offline routing)
+      const sale = await dbInsert<Sale>('sales', {
+        total_amount,
+        payment_method,
+        customer_id: customer_id || null,
+        date: new Date().toISOString(),
+      });
 
-      const saleItems = items.map(item => ({
-        sale_id: sale.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.subtotal,
-      }));
+      // 2) Insert each sale_item. In Electron the AFTER INSERT trigger on
+      //    sale_items deducts product stock automatically (mirrors Supabase).
+      for (const item of items) {
+        await dbInsert('sale_items', {
+          sale_id: sale.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+        } as any);
+      }
 
-      const { error: itemsError } = await supabase.from('sale_items').insert(saleItems);
-      if (itemsError) throw itemsError;
-
-      // If sold on credit, create a debt transaction for the customer
+      // 3) Credit sale → also create a debt transaction for the customer
       if (payment_method === 'credit' && customer_id) {
-        const itemNames = items.map(i => {
-          // We'll use product_id as fallback
-          return `sale item`;
-        });
-        const { error: txError } = await supabase.from('transactions').insert({
+        await dbInsert('transactions', {
           customer_id,
           type: 'debt',
           amount: total_amount,
           description: `Credit sale #${sale.id.slice(0, 8)}`,
-        });
-        if (txError) throw txError;
+          date: new Date().toISOString(),
+        } as any);
       }
 
       return sale;
