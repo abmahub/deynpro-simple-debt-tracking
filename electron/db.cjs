@@ -327,4 +327,87 @@ function importAll(payload) {
   return { ok: true };
 }
 
-module.exports = { init, select, insert, update, remove, exportAll, importAll };
+// ============================================================
+// Outbox + sync helpers (used by the renderer-side sync worker)
+// ============================================================
+function outboxEnqueue(table, op, rowId, payload) {
+  db.prepare(
+    `INSERT INTO sync_outbox (table_name, op, row_id, payload) VALUES (?, ?, ?, ?)`
+  ).run(table, op, rowId, JSON.stringify(payload || {}));
+}
+
+function outboxPeek(limit = 50) {
+  return db.prepare(
+    `SELECT * FROM sync_outbox ORDER BY id ASC LIMIT ?`
+  ).all(limit).map((r) => ({ ...r, payload: JSON.parse(r.payload) }));
+}
+
+function outboxAck(id) {
+  db.prepare(`DELETE FROM sync_outbox WHERE id = ?`).run(id);
+  return { ok: true };
+}
+
+function outboxFail(id, error) {
+  db.prepare(
+    `UPDATE sync_outbox SET attempts = attempts + 1, last_error = ? WHERE id = ?`
+  ).run(String(error || ''), id);
+  return { ok: true };
+}
+
+function getSyncState(table) {
+  assertTable(table);
+  const row = db.prepare(`SELECT last_pulled_at FROM sync_state WHERE table_name = ?`).get(table);
+  return row ? row.last_pulled_at : null;
+}
+
+function setSyncState(table, lastPulledAt) {
+  assertTable(table);
+  db.prepare(
+    `INSERT INTO sync_state (table_name, last_pulled_at) VALUES (?, ?)
+     ON CONFLICT(table_name) DO UPDATE SET last_pulled_at = excluded.last_pulled_at`
+  ).run(table, lastPulledAt);
+  return { ok: true };
+}
+
+/**
+ * Apply a remote row from Supabase into the local DB.
+ * Last-write-wins: only applies if remote.updated_at >= local.updated_at.
+ * Used by the sync worker pull step.
+ */
+function upsertRemote(table, row) {
+  assertTable(table);
+  if (!row || !row.id) return { applied: false };
+  const existing = db.prepare(`SELECT updated_at FROM ${table} WHERE id = ?`).get(row.id);
+  if (existing && existing.updated_at && row.updated_at && existing.updated_at > row.updated_at) {
+    return { applied: false, reason: 'local-newer' };
+  }
+  // Coerce booleans and unsupported JS types to SQLite-safe values
+  const safe = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (typeof v === 'boolean') safe[k] = v ? 1 : 0;
+    else if (v === undefined) safe[k] = null;
+    else safe[k] = v;
+  }
+  const cols = Object.keys(safe);
+  const placeholders = cols.map(() => '?').join(', ');
+  db.prepare(
+    `INSERT OR REPLACE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`
+  ).run(...cols.map((c) => safe[c]));
+  return { applied: true };
+}
+
+// Variants of insert/update/remove that DO NOT enqueue to the outbox.
+// Used when applying changes that came FROM the server (sync pull) so we
+// don't echo them back.
+function insertLocal(table, values) {
+  return insert(table, values);
+}
+function updateLocal(table, values, filters) {
+  return update(table, values, filters);
+}
+
+module.exports = {
+  init, select, insert, update, remove, exportAll, importAll,
+  outboxEnqueue, outboxPeek, outboxAck, outboxFail,
+  getSyncState, setSyncState, upsertRemote, insertLocal, updateLocal,
+};

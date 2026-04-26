@@ -41,6 +41,14 @@ ipcMain.handle('db:update', (_e, table, values, filters) => db.update(table, val
 ipcMain.handle('db:delete', (_e, table, filters) => db.remove(table, filters));
 ipcMain.handle('db:exportAll', () => db.exportAll());
 ipcMain.handle('db:importAll', (_e, payload) => db.importAll(payload));
+
+// Sync helpers (renderer-side sync worker uses these)
+ipcMain.handle('sync:outboxPeek', (_e, limit) => db.outboxPeek(limit));
+ipcMain.handle('sync:outboxAck', (_e, id) => db.outboxAck(id));
+ipcMain.handle('sync:outboxFail', (_e, id, err) => db.outboxFail(id, err));
+ipcMain.handle('sync:getState', (_e, table) => db.getSyncState(table));
+ipcMain.handle('sync:setState', (_e, table, ts) => db.setSyncState(table, ts));
+ipcMain.handle('sync:upsertRemote', (_e, table, row) => db.upsertRemote(table, row));
 // NOTE: db:raw is intentionally NOT exposed over IPC.
 // The renderer must only use the typed select/insert/update/remove API,
 // which validates table names against an allow-list in db.cjs.
