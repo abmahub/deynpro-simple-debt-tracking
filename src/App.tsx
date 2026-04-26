@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Customers from "@/pages/Customers";
@@ -42,6 +43,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <UpdatePrompt />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
