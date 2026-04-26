@@ -69,9 +69,7 @@ export default defineConfig(({ mode }) => ({
             options: { cacheName: "assets" },
           },
           {
-            urlPattern: ({ url }) =>
-              url.origin === self.location.origin &&
-              url.pathname.startsWith("/assets/"),
+            urlPattern: /\/assets\/.*\.(?:js|css|woff2?)$/,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "build-assets" },
           },
