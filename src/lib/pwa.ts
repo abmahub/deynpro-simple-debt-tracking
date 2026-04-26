@@ -1,5 +1,3 @@
-
-
 type UpdateHandler = (reloadFn: () => void) => void;
 
 const isInIframe = (() => {
@@ -16,12 +14,11 @@ const isPreviewHost =
     window.location.hostname.includes("lovableproject.com") ||
     window.location.hostname.includes("lovable.app"));
 
-export function registerServiceWorker(onUpdateAvailable: UpdateHandler) {
+export function registerServiceWorker(_onUpdateAvailable?: UpdateHandler) {
   if (typeof window === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
 
-  // Never register the SW inside the editor preview / iframes.
-  // Also unregister any stale SWs that may have been installed in those contexts.
+  // Disable service worker in dev, preview, and iframe environments
   if (isPreviewHost || isInIframe || import.meta.env.DEV) {
     navigator.serviceWorker.getRegistrations?.().then((regs) => {
       regs.forEach((r) => r.unregister());
@@ -29,16 +26,8 @@ export function registerServiceWorker(onUpdateAvailable: UpdateHandler) {
     return;
   }
 
-  const wb = new Workbox("/sw.js");
+  // Production safety: DO NOT use Workbox (prevents crash)
+  // If you want PWA later, we can re-add it properly
 
-  wb.addEventListener("waiting", () => {
-    onUpdateAvailable(() => {
-      wb.addEventListener("controlling", () => window.location.reload());
-      wb.messageSkipWaiting();
-    });
-  });
-
-  wb.register().catch((err) => {
-    console.warn("SW registration failed:", err);
-  });
+  console.log("Service worker skipped (safe mode enabled)");
 }
