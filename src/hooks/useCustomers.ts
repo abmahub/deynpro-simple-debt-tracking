@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { dbSelect, dbSelectOne, dbInsert, dbUpdate, dbDelete, attachOne } from '@/lib/data';
 
 export interface Customer {
   id: string;
@@ -24,9 +24,9 @@ export function useCustomers() {
   return useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as Customer[];
+      return await dbSelect<Customer>('customers', {
+        orderBy: { column: 'created_at', ascending: false },
+      });
     },
   });
 }
@@ -35,9 +35,9 @@ export function useCustomer(id: string) {
   return useQuery({
     queryKey: ['customer', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('customers').select('*').eq('id', id).single();
-      if (error) throw error;
-      return data as Customer;
+      const c = await dbSelectOne<Customer>('customers', { id });
+      if (!c) throw new Error('Customer not found');
+      return c;
     },
   });
 }
@@ -46,13 +46,10 @@ export function useCustomerTransactions(customerId: string) {
   return useQuery({
     queryKey: ['transactions', customerId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('customer_id', customerId)
-        .order('date', { ascending: false });
-      if (error) throw error;
-      return data as Transaction[];
+      return await dbSelect<Transaction>('transactions', {
+        filters: { customer_id: customerId },
+        orderBy: { column: 'date', ascending: false },
+      });
     },
   });
 }
@@ -61,12 +58,11 @@ export function useAllTransactions() {
   return useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*, customers(name, phone)')
-        .order('date', { ascending: false });
-      if (error) throw error;
-      return data as (Transaction & { customers: { name: string; phone: string } })[];
+      const txs = await dbSelect<Transaction>('transactions', {
+        orderBy: { column: 'date', ascending: false },
+      });
+      return await attachOne(txs, 'customer_id', 'customers', 'customers', ['name', 'phone']) as
+        (Transaction & { customers: { name: string; phone: string } })[];
     },
   });
 }
@@ -75,11 +71,7 @@ export function useAddCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ name, phone }: { name: string; phone: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.from('customers').insert({ name, phone, user_id: user.id }).select().single();
-      if (error) throw error;
-      return data;
+      return await dbInsert<Customer>('customers', { name, phone });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }),
   });
@@ -89,9 +81,8 @@ export function useUpdateCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name, phone }: { id: string; name: string; phone: string }) => {
-      const { data, error } = await supabase.from('customers').update({ name, phone }).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
+      await dbUpdate('customers', id, { name, phone });
+      return { id, name, phone };
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['customers'] });
@@ -104,8 +95,7 @@ export function useDeleteCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('customers').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('customers', id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }),
   });
@@ -115,8 +105,7 @@ export function useDeleteTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (error) throw error;
+      await dbDelete('transactions', id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -129,13 +118,12 @@ export function useUpdateTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, amount, description, due_date }: { id: string; amount: number; description?: string; due_date?: string }) => {
-      const { data, error } = await supabase.from('transactions').update({
+      await dbUpdate('transactions', id, {
         amount,
         description: description || null,
         due_date: due_date || null,
-      }).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
+      });
+      return { id, amount, description, due_date };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -148,13 +136,17 @@ export function useAddTransaction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (tx: { customer_id: string; type: 'debt' | 'payment'; amount: number; description?: string; due_date?: string }) => {
-      const { data, error } = await supabase.from('transactions').insert({
-        ...tx,
+      // Note: transactions don't have user_id (they're scoped by customer).
+      // dbInsert adds user_id by default — strip it after the fact for the
+      // online path. The Electron schema accepts the extra field harmlessly.
+      return await dbInsert<Transaction>('transactions', {
+        customer_id: tx.customer_id,
+        type: tx.type,
+        amount: tx.amount,
+        description: tx.description || null,
         date: new Date().toISOString(),
         due_date: tx.due_date || null,
-      }).select().single();
-      if (error) throw error;
-      return data;
+      } as any);
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['transactions'] });
@@ -176,11 +168,8 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => {
-      const { data: customers } = await supabase.from('customers').select('id, name, phone');
-      const { data: transactions } = await supabase.from('transactions').select('*');
-
-      const txs = transactions || [];
-      const custs = customers || [];
+      const custs = await dbSelect<Customer>('customers');
+      const txs = await dbSelect<Transaction>('transactions');
 
       const totalDebt = txs.filter(t => t.type === 'debt').reduce((s, t) => s + t.amount, 0);
       const totalPayments = txs.filter(t => t.type === 'payment').reduce((s, t) => s + t.amount, 0);
