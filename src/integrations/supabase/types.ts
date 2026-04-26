@@ -17,23 +17,29 @@ export type Database = {
       customers: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
           phone: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
           phone: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           phone?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -42,22 +48,28 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           color?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           color?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -68,10 +80,12 @@ export type Database = {
           category: string
           created_at: string
           date: string
+          deleted_at: string | null
           description: string | null
           id: string
           supplier_id: string | null
           title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -79,10 +93,12 @@ export type Database = {
           category?: string
           created_at?: string
           date?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           supplier_id?: string | null
           title: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -90,10 +106,12 @@ export type Database = {
           category?: string
           created_at?: string
           date?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           supplier_id?: string | null
           title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -112,6 +130,7 @@ export type Database = {
           category: string | null
           cost_price: number
           created_at: string
+          deleted_at: string | null
           description: string | null
           expiry_date: string | null
           id: string
@@ -121,6 +140,7 @@ export type Database = {
           price: number
           quantity: number
           supplier_id: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -128,6 +148,7 @@ export type Database = {
           category?: string | null
           cost_price?: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expiry_date?: string | null
           id?: string
@@ -137,6 +158,7 @@ export type Database = {
           price?: number
           quantity?: number
           supplier_id?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -144,6 +166,7 @@ export type Database = {
           category?: string | null
           cost_price?: number
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           expiry_date?: string | null
           id?: string
@@ -153,6 +176,7 @@ export type Database = {
           price?: number
           quantity?: number
           supplier_id?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -168,30 +192,36 @@ export type Database = {
       sale_items: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           product_id: string
           quantity: number
           sale_id: string
           subtotal: number
           unit_price: number
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           product_id: string
           quantity?: number
           sale_id: string
           subtotal: number
           unit_price: number
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           product_id?: string
           quantity?: number
           sale_id?: string
           subtotal?: number
           unit_price?: number
+          updated_at?: string
         }
         Relationships: [
           {
@@ -215,27 +245,33 @@ export type Database = {
           created_at: string
           customer_id: string | null
           date: string
+          deleted_at: string | null
           id: string
           payment_method: string
           total_amount: number
+          updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           customer_id?: string | null
           date?: string
+          deleted_at?: string | null
           id?: string
           payment_method?: string
           total_amount?: number
+          updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           customer_id?: string | null
           date?: string
+          deleted_at?: string | null
           id?: string
           payment_method?: string
           total_amount?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -252,6 +288,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          deleted_at: string | null
           id: string
           logo_url: string | null
           phone: string | null
@@ -262,6 +299,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           logo_url?: string | null
           phone?: string | null
@@ -272,6 +310,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           logo_url?: string | null
           phone?: string | null
@@ -285,28 +324,34 @@ export type Database = {
         Row: {
           alert_type: string
           created_at: string
+          deleted_at: string | null
           id: string
           is_read: boolean
           message: string
           product_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           alert_type?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_read?: boolean
           message: string
           product_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           alert_type?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_read?: boolean
           message?: string
           product_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -323,31 +368,37 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           email: string | null
           id: string
           name: string
           phone: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           email?: string | null
           id?: string
           name: string
           phone?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           address?: string | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           email?: string | null
           id?: string
           name?: string
           phone?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -358,30 +409,36 @@ export type Database = {
           created_at: string
           customer_id: string
           date: string
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
           type: string
+          updated_at: string
         }
         Insert: {
           amount: number
           created_at?: string
           customer_id: string
           date?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           type: string
+          updated_at?: string
         }
         Update: {
           amount?: number
           created_at?: string
           customer_id?: string
           date?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
