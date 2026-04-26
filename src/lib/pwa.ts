@@ -1,4 +1,4 @@
-import { Workbox } from "workbox-window";
+
 
 type UpdateHandler = (reloadFn: () => void) => void;
 
